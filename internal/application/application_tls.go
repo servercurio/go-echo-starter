@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"os"
@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/joomcode/errorx"
+	"github.com/labstack/echo/v5"
 	ce "github.com/servercurio/go-echo-starter/internal/errors"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 	"golang.org/x/crypto/acme/autocert"
@@ -46,9 +47,7 @@ func (app *Application) configureTlsServer() error {
 	}
 
 	app.tlsServer.Use(app.middleware...)
-	app.tlsServer.HideBanner = true
-	app.tlsServer.Logger.SetOutput(io.Discard)
-	app.tlsServer.StdLogger.SetOutput(io.Discard)
+	app.tlsServer.Logger = slog.New(slog.DiscardHandler)
 
 	autoTlsEnabled := app.autoTlsEnabled()
 
@@ -187,17 +186,7 @@ func (app *Application) configureAutoTlsManager() error {
 		return wErr
 	}
 
-	hp := autocert.HostWhitelist("localhost")
-	if app.config.Server.Https.Hostname != "" {
-		hp = autocert.HostWhitelist(app.config.Server.Https.Hostname)
-	}
-
-	app.tlsServer.AutoTLSManager.HostPolicy = hp
-	app.tlsServer.AutoTLSManager.Cache = autocert.DirCache(cacheDir)
-	app.tlsServer.AutoTLSManager.Prompt = autocert.AcceptTOS
-
-	app.tlsServer.Logger.SetOutput(os.Stderr)
-	app.tlsServer.StdLogger.SetOutput(os.Stderr)
+	app.tlsServer.Logger = nil
 
 	logging.Daemon.Info().
 		Str("certificateCache", cacheDir).
@@ -211,6 +200,7 @@ func (app *Application) startTlsServer() {
 		return
 	}
 
+	cacheDir := strings.TrimSpace(app.config.Server.Https.CertificateCache)
 	address := fmt.Sprintf("%s:%d", app.config.Server.Https.BindAddress, app.config.Server.Https.Port)
 
 	logging.Daemon.Info().
@@ -219,9 +209,28 @@ func (app *Application) startTlsServer() {
 		Bool("ephemeralCertIssuance", !app.config.Server.Https.UseAcmeIssuer).
 		Msg("https server started")
 
+	sc := &echo.StartConfig{
+		HideBanner:      true,
+		Address:         address,
+		GracefulTimeout: app.config.Server.Https.ShutdownTimeout,
+	}
+
 	if app.autoTlsEnabled() {
 		if app.config.Server.Https.UseAcmeIssuer {
-			if err := app.tlsServer.StartAutoTLS(address); !errors.Is(err, http.ErrServerClosed) {
+			hp := autocert.HostWhitelist("localhost")
+			if app.config.Server.Https.Hostname != "" {
+				hp = autocert.HostWhitelist(app.config.Server.Https.Hostname)
+			}
+
+			acm := &autocert.Manager{
+				Prompt:     autocert.AcceptTOS,
+				Cache:      autocert.DirCache(cacheDir),
+				HostPolicy: hp,
+			}
+
+			sc.TLSConfig = acm.TLSConfig()
+
+			if err := sc.Start(context.Background(), app.tlsServer); !errors.Is(err, http.ErrServerClosed) {
 				logging.Daemon.Error().
 					Err(errorx.EnsureStackTrace(err)).
 					Msg("https server shutting down due to an error")
@@ -229,7 +238,7 @@ func (app *Application) startTlsServer() {
 			return
 		}
 
-		if err := app.tlsServer.StartTLS(address, app.certificate.Certificate, app.certificate.PrivateKey); !errors.Is(err, http.ErrServerClosed) {
+		if err := sc.StartTLS(context.Background(), app.tlsServer, app.certificate.Certificate, app.certificate.PrivateKey); !errors.Is(err, http.ErrServerClosed) {
 			logging.Daemon.Error().
 				Err(errorx.EnsureStackTrace(err)).
 				Msg("https server shutting down due to an error")
@@ -237,7 +246,7 @@ func (app *Application) startTlsServer() {
 		return
 	}
 
-	if err := app.tlsServer.StartTLS(address, app.config.Server.Https.Certificate, app.config.Server.Https.Key); !errors.Is(err, http.ErrServerClosed) {
+	if err := sc.StartTLS(context.Background(), app.tlsServer, app.config.Server.Https.Certificate, app.config.Server.Https.Key); !errors.Is(err, http.ErrServerClosed) {
 		logging.Daemon.Error().
 			Err(errorx.EnsureStackTrace(err)).
 			Msg("https server shutting down due to an error")
@@ -247,21 +256,5 @@ func (app *Application) startTlsServer() {
 func (app *Application) shutdownTlsServer() {
 	if !app.config.Server.Https.Enabled {
 		return
-	}
-
-	var ctx context.Context
-	var cancel context.CancelFunc
-
-	if app.config.Server.Https.ShutdownTimeout > 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), app.config.Server.Https.ShutdownTimeout)
-	} else {
-		ctx, cancel = context.WithCancel(context.Background())
-	}
-
-	defer cancel()
-	if err := app.tlsServer.Shutdown(ctx); err != nil {
-		logging.Daemon.Error().
-			Err(err).
-			Msg("https server shutdown failed")
 	}
 }

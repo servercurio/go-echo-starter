@@ -6,8 +6,8 @@ import (
 	"os/signal"
 
 	"github.com/joomcode/errorx"
-	"github.com/labstack/echo/v4"
-	mw "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	mw "github.com/labstack/echo/v5/middleware"
 	"github.com/servercurio/go-echo-starter/internal/config"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 	"github.com/servercurio/go-echo-starter/internal/router"
@@ -47,7 +47,7 @@ func NewApplication(cfg *Config) *Application {
 				MinLength: 2 * 1024,
 			}),
 			logging.EchoMiddleware(),
-			mw.CORS(),
+			mw.CORS("*"),
 			//mw.CSRF(),
 			mw.Secure(),
 		},

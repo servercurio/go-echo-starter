@@ -1,13 +1,12 @@
 package logging
 
 import (
-	"github.com/labstack/echo/v4"
-	mw "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	mw "github.com/labstack/echo/v5/middleware"
 )
 
 func EchoMiddleware() echo.MiddlewareFunc {
 	return mw.RequestLoggerWithConfig(mw.RequestLoggerConfig{
-		LogError:         true,
 		LogMethod:        true,
 		LogURI:           true,
 		LogRemoteIP:      true,
@@ -22,7 +21,7 @@ func EchoMiddleware() echo.MiddlewareFunc {
 		LogContentLength: true,
 		LogRoutePath:     true,
 		LogURIPath:       true,
-		LogValuesFunc: func(c echo.Context, v mw.RequestLoggerValues) error {
+		LogValuesFunc: func(c *echo.Context, v mw.RequestLoggerValues) error {
 			l := Access
 			if v.Error != nil {
 				l.Error().

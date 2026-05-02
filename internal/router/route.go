@@ -1,6 +1,6 @@
 package router
 
-import "github.com/labstack/echo/v4"
+import "github.com/labstack/echo/v5"
 
 type Route interface {
 	// Id returns the unique identifier of the route.

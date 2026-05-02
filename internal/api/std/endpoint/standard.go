@@ -1,9 +1,10 @@
 package endpoint
 
 import (
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"slices"
+
+	"github.com/labstack/echo/v5"
 )
 
 type Standard struct {
@@ -39,7 +40,7 @@ func (e *Standard) AttachGroup(group *echo.Group) {
 	e.group = group
 }
 
-func (e *Standard) HandleRequest(c echo.Context) error {
+func (e *Standard) HandleRequest(c *echo.Context) error {
 	if e.handler == nil {
 		return c.NoContent(http.StatusNotImplemented)
 	}

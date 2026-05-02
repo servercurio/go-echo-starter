@@ -1,6 +1,6 @@
 package router
 
-import "github.com/labstack/echo/v4"
+import "github.com/labstack/echo/v5"
 
 type Endpoint interface {
 	// Id returns the unique identifier of the endpoint.
@@ -17,7 +17,7 @@ type Endpoint interface {
 	Middleware() []echo.MiddlewareFunc
 
 	// HandleRequest processes the incoming request and produces a response.
-	HandleRequest(c echo.Context) error
+	HandleRequest(c *echo.Context) error
 
 	// AttachGroup registers the echo.Group with the Module.
 	AttachGroup(group *echo.Group)

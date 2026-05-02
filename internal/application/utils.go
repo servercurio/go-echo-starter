@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
@@ -63,7 +63,7 @@ func HTTPSRedirectWithConfig(cfg *TlsConfig) echo.MiddlewareFunc {
 	}
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			if c.Request().TLS != nil {
 				return next(c)
 			}

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/joomcode/errorx"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
