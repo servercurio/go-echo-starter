@@ -30,4 +30,4 @@ A fresh clone won't have `vendor/` until `task vendor` (or any task that depends
 ## Things to leave alone unless asked
 
 - The Echo v4 → v5 migration is fresh. Don't revert v5 idioms or pin older versions.
-- `obfusicate/` is a small package I haven't audited — don't refactor or rename it speculatively.
+- `obfusicate/` exposes one tiny helper (`ConcealPrefix`) used for log redaction — leave it alone unless the task is explicitly about redaction; the misspelled package name is intentional and matches the import path.

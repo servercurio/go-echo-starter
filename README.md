@@ -13,7 +13,7 @@ The compiled binary is named `appsvrd` (application server daemon).
 - **Modular routing** — composable `Module → Route → Endpoint` hierarchy with per-module middleware and prefix nesting
 - **Structured logging** via [zerolog](https://github.com/rs/zerolog) with two independent loggers: `Daemon` (lifecycle) and `Access` (HTTP)
 - **Layered configuration** — YAML/JSON config files plus environment variable overrides (prefix `APP_`)
-- **Graceful shutdown** on `SIGINT` / `SIGTERM` with configurable timeout
+- **Graceful shutdown** on `SIGINT`, `SIGTERM`, and `SIGUSR1` (Unix) / `SIGINT` (Windows), with configurable timeout
 - **Cross-platform builds** for `linux`, `darwin`, `windows` × `amd64`, `arm64`
 
 ## Requirements
@@ -70,8 +70,9 @@ All keys are prefixed with `APP_`. Examples:
 | Variable                              | Default      | Purpose                                     |
 | ------------------------------------- | ------------ | ------------------------------------------- |
 | `APP_DAEMON_LOG_LEVEL`                | `info`       | Daemon log level (`trace`–`fatal`)          |
+| `APP_DAEMON_LOG_PRETTY_PRINT`         | `true`       | Color console output for daemon log         |
 | `APP_DAEMON_LOG_INCLUDE_CALLER`       | `false`      | Include caller file:line in log output      |
-| `APP_HTTP_ACCESS_LOG_ENABLED`         | `true`       | Toggle the HTTP access log                  |
+| `APP_HTTP_ACCESS_LOG_ENABLED`         | `false`      | Toggle the HTTP access log                  |
 | `APP_HTTP_ACCESS_LOG_LEVEL`           | `error`      | Access log level                            |
 | `APP_HTTP_ACCESS_LOG_PRETTY_PRINT`    | `false`      | Color console output                        |
 | `APP_SERVER_HTTP_PORT`                | `8080`       | HTTP listener port                          |
@@ -86,17 +87,35 @@ See `internal/application/config_*.go` for the complete schema.
 
 Routes are attached to modules. The `v1` API module is empty by default — add endpoints under `internal/api/v1/`, then register them via the module's `WithRoutes(...)` option.
 
+The relevant constructors are:
+
+- `module.New(id, name, prefix string, opts ...module.Option)` — options: `WithRoutes`, `WithSubModules`, `WithMiddleware`
+- `route.New(id, name, path string, opts ...route.Option)` — options: `WithEndpoints`, `WithMiddleware`
+- `endpoint.New(id, name string, opts ...endpoint.Option)` — options: `WithHandler`, `WithMethods` (or convenience `WithGetMethod`, `WithPostMethod`, etc.), `WithMiddleware`
+
+Echo v5 handlers receive `*echo.Context` (pointer), not the v4 interface.
+
 A typical pattern:
 
 ```go
 // internal/api/v1/health.go
+package v1
+
+import (
+    "net/http"
+
+    "github.com/labstack/echo/v5"
+    "github.com/servercurio/go-echo-starter/internal/api/std/endpoint"
+    "github.com/servercurio/go-echo-starter/internal/api/std/route"
+    "github.com/servercurio/go-echo-starter/internal/router"
+)
+
 func HealthRoute() router.Route {
-    return route.NewStandard("health",
-        route.WithPath("/health"),
+    return route.New("health", "health", "/health",
         route.WithEndpoints(
-            endpoint.NewStandard(
-                endpoint.WithMethods(http.MethodGet),
-                endpoint.WithHandler(func(c echo.Context) error {
+            endpoint.New("health-get", "health-get",
+                endpoint.WithGetMethod(),
+                endpoint.WithHandler(func(c *echo.Context) error {
                     return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
                 }),
             ),
@@ -105,7 +124,7 @@ func HealthRoute() router.Route {
 }
 ```
 
-Then wire it into `internal/api/v1/module.go` via `module.WithRoutes(HealthRoute())`.
+Then wire it into `internal/api/v1/module.go` by adding `module.WithRoutes(HealthRoute())` to the `module.New(...)` call.
 
 ## Build tasks
 
