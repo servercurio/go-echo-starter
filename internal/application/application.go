@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"os"
 	"os/signal"
 
 	"github.com/joomcode/errorx"
@@ -143,7 +142,7 @@ func (app *Application) RegisterModule(m router.Module) error {
 
 func (app *Application) Start() (int, error) {
 	signalCtx, signalCancel :=
-		signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+		signal.NotifyContext(context.Background(), shutdownSignals...)
 	defer signalCancel()
 
 	go app.startHttpServer()
