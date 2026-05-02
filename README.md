@@ -49,6 +49,9 @@ internal/
   env/              # Type-safe environment variable parsers
   logging/          # Zerolog setup, middleware, named loggers
   errors/           # errorx namespaces (FileSystemErrors)
+  database/         # Optional SQL connection pool (pgx), Goose migrations, Bun ORM
+    migrations/sql/ # Embedded *.sql migration files
+    orm/            # Bun ORM singleton + (your) domain models
   version/          # Build-time version metadata
 pkg/                # (reserved for future public packages)
 .github/
@@ -84,6 +87,8 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_SERVER_HTTPS_PORT`               | `8443`       | HTTPS listener port                         |
 | `APP_SERVER_HTTPS_HOSTNAME`           | —            | Hostname presented in self-signed/ACME cert |
 | `APP_SERVER_HTTPS_USE_ACME_ISSUER`    | `false`      | Use Let's Encrypt instead of static certs   |
+| `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
+| `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
 
 See `internal/application/config_*.go` for the complete schema.
 
@@ -94,10 +99,26 @@ The default `v1` module ships three Kubernetes-style health endpoints under `/ap
 | Path                  | Purpose                  | Behaviour                                                                       |
 |-----------------------|--------------------------|---------------------------------------------------------------------------------|
 | `/api/v1/livez`       | Liveness probe           | Always `200 {"status":"ok"}` while the HTTP listener can respond. Does **not** depend on application state, downstream services, or shutdown — kubelet uses this to decide whether to restart the pod. |
-| `/api/v1/readyz`      | Readiness probe          | `200 {"status":"ok"}` once the application has finished starting up and the readiness probe reports ready; `503 {"status":"not_ready"}` during startup, after a shutdown signal is received, or if the probe is misconfigured (fail closed). Load balancers should drain traffic when this returns 503. |
+| `/api/v1/readyz`      | Readiness probe          | `200 {"status":"ok"}` once the application has finished starting up, the readiness probe reports ready, AND (if a database is configured) a `PingContext` against the connection pool succeeds. `503 {"status":"not_ready"}` during startup, after a shutdown signal is received, when the database is unreachable, or if the probe is misconfigured (fail closed). Load balancers should drain traffic when this returns 503. |
 | `/api/v1/healthz`     | Legacy alias for readyz  | Same semantics as `/readyz`. Kept so consumers that default to `/healthz` (older uptime checks, default Cloud LB health-check paths) keep working.       |
 
-Application readiness is wired via `router.Config.ReadinessProbe` — `cmd/daemon/main.go` sets this to `app.IsReady`, which flips to `true` after the server goroutines spawn and back to `false` when a shutdown signal arrives.
+Application readiness is wired via `router.Config.ReadinessProbe` — `cmd/daemon/main.go` composes it as `app.IsReady() && app.IsDatabaseHealthy()`. The lifecycle flag flips to `true` after the server goroutines spawn and back to `false` when a shutdown signal arrives. The database probe issues a 1-second `PingContext` against the connection pool on every `/readyz` and `/healthz` request, so the load balancer notices a downed database within one probe interval. When no database is configured, `IsDatabaseHealthy()` returns `true` unconditionally and the readiness check collapses back to lifecycle-only.
+
+## Database (optional)
+
+The starter ships an opt-in database layer using:
+
+- [`pgx`](https://github.com/jackc/pgx) as the `database/sql` driver (PostgreSQL).
+- [`pressly/goose`](https://github.com/pressly/goose) for SQL schema migrations, embedded into the binary via `//go:embed internal/database/migrations/sql/*.sql`.
+- [`uptrace/bun`](https://github.com/uptrace/bun) as the ORM, configured against the same `*sql.DB` connection pool.
+
+To enable: set `APP_DATABASE_DSN` (e.g. `postgres://user:pass@host:5432/db?sslmode=disable`). On startup the daemon will:
+
+1. `database.Connect(cfg)` — open the pool and verify reachability with a ping.
+2. `database.Migrate(cfg)` — apply pending Goose migrations from `internal/database/migrations/sql/`.
+3. `orm.Configure()` — wrap the connection in a Bun `*bun.DB` singleton accessible via `orm.Database()`.
+
+To add a migration, drop a new `YYYYMMDDHHMMSS_description.sql` file alongside the no-op initial migration and rebuild — the embed pattern picks it up automatically. The default `Driver` is `pgx`; replace the driver, the dialect in `internal/database/orm/connection.go`, and the `goose.SetDialect` argument in `migration.go` to swap engines.
 
 ## Adding a route
 

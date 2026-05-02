@@ -9,6 +9,8 @@ import (
 	"github.com/labstack/echo/v5"
 	mw "github.com/labstack/echo/v5/middleware"
 	"github.com/servercurio/go-echo-starter/internal/config"
+	"github.com/servercurio/go-echo-starter/internal/database"
+	"github.com/servercurio/go-echo-starter/internal/database/orm"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 	"github.com/servercurio/go-echo-starter/internal/router"
 )
@@ -72,6 +74,17 @@ func NewApplication(cfg *Config) *Application {
 	return app
 }
 
+// IsDatabaseHealthy reports whether the configured database is currently
+// reachable. Returns true when the database subsystem is disabled (no DSN
+// configured) so callers can compose readiness probes without special-casing
+// the disabled state.
+func (app *Application) IsDatabaseHealthy() bool {
+	if !app.config.Database.Enabled() {
+		return true
+	}
+	return database.IsHealthy()
+}
+
 func (app *Application) Configure() error {
 	configLocations := configSearchPaths()
 
@@ -100,6 +113,7 @@ func (app *Application) Configure() error {
 	NotifyHttpServerConfig(app.config.Server.Http)
 	NotifyHttpsServerConfig(app.config.Server.Https)
 	NotifyProxySupportConfig(app.config.Proxy)
+	NotifyDatabaseConfig(app.config.Database)
 
 	return nil
 }
@@ -122,6 +136,10 @@ func (app *Application) Initialize() error {
 			Msg("invalid proxy support configuration")
 	}
 
+	if err := app.initializeDatabase(); err != nil {
+		return err
+	}
+
 	if err := app.initializeRouting(); err != nil {
 		logging.Daemon.
 			Warn().
@@ -129,6 +147,32 @@ func (app *Application) Initialize() error {
 			Msg("failed to initialize routing")
 	}
 
+	return nil
+}
+
+// initializeDatabase opens the database connection, runs any pending Goose
+// migrations, and configures the Bun ORM singleton. It is a no-op when the
+// database subsystem is disabled (empty DSN), so the daemon can run as a
+// pure HTTP server with no database backing.
+func (app *Application) initializeDatabase() error {
+	if !app.config.Database.Enabled() {
+		logging.Daemon.Info().Msg("database subsystem disabled (no DSN configured)")
+		return nil
+	}
+
+	if err := database.Connect(app.config.Database); err != nil {
+		return errorx.Decorate(err, "database connect failed")
+	}
+
+	if err := database.Migrate(app.config.Database); err != nil {
+		return errorx.Decorate(err, "database migration failed")
+	}
+
+	if err := orm.Configure(); err != nil {
+		return errorx.Decorate(err, "ORM configuration failed")
+	}
+
+	logging.Daemon.Info().Msg("database initialized")
 	return nil
 }
 
@@ -164,6 +208,10 @@ func (app *Application) Start() (int, error) {
 	app.ready.Store(false)
 	app.shutdownHttpServer()
 	app.shutdownTlsServer()
+
+	if err := database.Disconnect(); err != nil {
+		logging.Daemon.Warn().Err(err).Msg("error closing database connection")
+	}
 
 	return 0, nil
 }

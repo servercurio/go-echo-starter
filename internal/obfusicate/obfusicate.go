@@ -1,5 +1,10 @@
 package obfusicate
 
+import (
+	"net/url"
+	"strings"
+)
+
 const obMask = "*"
 
 // ConcealPrefix replaces all but the last revealChars characters of a string.
@@ -9,6 +14,32 @@ func ConcealPrefix(s string, revealChars int) string {
 	}
 
 	return repeat(obMask, len(s)-revealChars) + s[len(s)-revealChars:]
+}
+
+// ConcealUriCredential parses s as a URI and, if it contains a userinfo
+// password component, replaces the password with a fixed mask. Returns the
+// input unchanged if it isn't a parseable URI or doesn't contain a password.
+//
+// Intended for safe logging of connection strings (database DSNs, etc.) where
+// the URL host/path is operationally useful but the password must not appear.
+func ConcealUriCredential(s string) string {
+	if len(s) == 0 || strings.TrimSpace(s) == "" {
+		return s
+	}
+
+	uri, err := url.ParseRequestURI(s)
+	if err != nil {
+		return s
+	}
+
+	if _, ok := uri.User.Password(); ok {
+		username := uri.User.Username()
+		concealedPass := repeat("+", 4)
+		uri.User = url.UserPassword(username, concealedPass)
+		return uri.String()
+	}
+
+	return uri.String()
 }
 
 func repeat(s string, count int) string {

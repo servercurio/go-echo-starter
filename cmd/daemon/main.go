@@ -16,7 +16,14 @@ func main() {
 	app := application.NewApplication(cfg)
 
 	routerCfg := router.NewConfig()
-	routerCfg.ReadinessProbe = app.IsReady
+	// Readiness is the conjunction of application-lifecycle readiness and
+	// database health: /readyz returns 200 only when the server has finished
+	// startup AND the database (if configured) is reachable. When the
+	// database subsystem is disabled, IsDatabaseHealthy() always returns
+	// true, so the probe collapses back to lifecycle-only readiness.
+	routerCfg.ReadinessProbe = func() bool {
+		return app.IsReady() && app.IsDatabaseHealthy()
+	}
 
 	_ = app.RegisterModule(api.Module(routerCfg))
 

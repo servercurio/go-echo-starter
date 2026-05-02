@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v5"
+	"github.com/servercurio/go-echo-starter/internal/database"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
@@ -56,6 +57,16 @@ func NotifyProxySupportConfig(cfg *ProxyConfig) {
 	logging.Daemon.Info().
 		EmbedObject(cfg).
 		Msg("proxy support configuration")
+}
+
+func NotifyDatabaseConfig(cfg *database.Config) {
+	if cfg == nil {
+		return
+	}
+
+	logging.Daemon.Info().
+		EmbedObject(cfg).
+		Msg("database configuration")
 }
 
 func HTTPSRedirectWithConfig(cfg *TlsConfig) echo.MiddlewareFunc {
