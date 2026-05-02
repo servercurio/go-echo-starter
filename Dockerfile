@@ -10,7 +10,7 @@ RUN mkdir -p /tmp/appsvr && \
         aarch64|arm64) ARCH="arm64" ;; \
         *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
     esac && \
-    cp -v /tmp/crusnik/appsvrd-linux-${ARCH} /usr/local/bin/appsvrd && \
+    cp -v /tmp/appsvr/appsvrd-linux-${ARCH} /usr/local/bin/appsvrd && \
     chmod +x /usr/local/bin/appsvrd && \
     rm -rf /tmp/appsvr
 

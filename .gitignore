@@ -795,3 +795,6 @@ secring.*
 dist/
 bin/
 internal/version/commit.txt
+
+# Claude Code — local-only settings (per-developer overrides)
+.claude/settings.local.json
