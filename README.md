@@ -87,9 +87,21 @@ All keys are prefixed with `APP_`. Examples:
 
 See `internal/application/config_*.go` for the complete schema.
 
+## Built-in endpoints
+
+The default `v1` module ships three Kubernetes-style health endpoints under `/api/v1/`:
+
+| Path                  | Purpose                  | Behaviour                                                                       |
+|-----------------------|--------------------------|---------------------------------------------------------------------------------|
+| `/api/v1/livez`       | Liveness probe           | Always `200 {"status":"ok"}` while the HTTP listener can respond. Does **not** depend on application state, downstream services, or shutdown — kubelet uses this to decide whether to restart the pod. |
+| `/api/v1/readyz`      | Readiness probe          | `200 {"status":"ok"}` once the application has finished starting up and the readiness probe reports ready; `503 {"status":"not_ready"}` during startup, after a shutdown signal is received, or if the probe is misconfigured (fail closed). Load balancers should drain traffic when this returns 503. |
+| `/api/v1/healthz`     | Legacy alias for readyz  | Same semantics as `/readyz`. Kept so consumers that default to `/healthz` (older uptime checks, default Cloud LB health-check paths) keep working.       |
+
+Application readiness is wired via `router.Config.ReadinessProbe` — `cmd/daemon/main.go` sets this to `app.IsReady`, which flips to `true` after the server goroutines spawn and back to `false` when a shutdown signal arrives.
+
 ## Adding a route
 
-Routes are attached to modules. The `v1` API module is empty by default — add endpoints under `internal/api/v1/`, then register them via the module's `WithRoutes(...)` option.
+Routes are attached to modules. The `v1` API module already wires the three health routes above; new endpoints go under `internal/api/v1/` and are added to the module via `WithRoutes(...)`.
 
 The relevant constructors are:
 
@@ -102,7 +114,7 @@ Echo v5 handlers receive `*echo.Context` (pointer), not the v4 interface.
 A typical pattern:
 
 ```go
-// internal/api/v1/health.go
+// internal/api/v1/ping.go
 package v1
 
 import (
@@ -114,13 +126,13 @@ import (
     "github.com/servercurio/go-echo-starter/internal/router"
 )
 
-func HealthRoute() router.Route {
-    return route.New("health", "health", "/health",
+func PingRoute() router.Route {
+    return route.New("ping", "ping", "/ping",
         route.WithEndpoints(
-            endpoint.New("health-get", "health-get",
+            endpoint.New("ping-get", "ping-get",
                 endpoint.WithGetMethod(),
                 endpoint.WithHandler(func(c *echo.Context) error {
-                    return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+                    return c.JSON(http.StatusOK, map[string]string{"pong": "ok"})
                 }),
             ),
         ),
@@ -128,7 +140,7 @@ func HealthRoute() router.Route {
 }
 ```
 
-Then wire it into `internal/api/v1/module.go` by adding `module.WithRoutes(HealthRoute())` to the `module.New(...)` call.
+Then wire it into `internal/api/v1/module.go` by adding `PingRoute()` to the existing `module.WithRoutes(...)` call. Routes that need application state (e.g. readiness, config) take a `*router.Config` argument like `ReadinessRoute(cfg)` does.
 
 ## Build tasks
 

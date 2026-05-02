@@ -16,6 +16,10 @@ func Module(cfg *router.Config) router.Module {
 		moduleIdentifier,
 		moduleName,
 		modulePrefix,
-		module.WithRoutes(HealthRoute(cfg)),
+		module.WithRoutes(
+			LivenessRoute(),
+			ReadinessRoute(cfg),
+			HealthRoute(cfg),
+		),
 	)
 }
