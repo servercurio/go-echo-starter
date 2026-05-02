@@ -51,6 +51,9 @@ internal/
   errors/           # errorx namespaces (FileSystemErrors)
   version/          # Build-time version metadata
 pkg/                # (reserved for future public packages)
+.github/
+  workflows/        # CI: PR Formatting, PR Checks, reusable code-compiles & unit-test
+    docs/           # Workflow naming-standards reference
 Taskfile.yaml       # Build, lint, test, run, container tasks
 Dockerfile          # Multi-arch container image (consumes bin/)
 ```
@@ -130,15 +133,16 @@ Then wire it into `internal/api/v1/module.go` by adding `module.WithRoutes(Healt
 
 | Task                  | Description                                         |
 | --------------------- | --------------------------------------------------- |
-| `task` / `task default` | Clean → vendor → lint → build all platform binaries |
-| `task build`          | Cross-compile for all OS/arch combinations          |
-| `task vendor`         | `go mod tidy` + `go mod vendor`                     |
-| `task lint`           | `go fmt` + `go vet` with strict checks              |
-| `task test`           | `go test -race -cover -parallel 4 ./...`            |
-| `task run:daemon`     | Build and run the local-platform binary             |
-| `task build:container`| Build the Docker image                              |
-| `task run:container`  | Build and run the Docker image                      |
-| `task clean`          | Remove `bin/`, `dist/`, and coverage output         |
+| `task` / `task default` | Clean → vendor → lint → build all platform binaries     |
+| `task build`          | Cross-compile for all OS/arch combinations (calls `generate`) |
+| `task generate`       | `go generate ./...` — refresh `internal/version/commit.txt` |
+| `task vendor`         | `go mod tidy` + `go mod vendor`                         |
+| `task lint`           | `go fmt` + `go vet` with strict checks                  |
+| `task test`           | `go test -race -cover -parallel 4 ./...`                |
+| `task run:daemon`     | Build and run the local-platform binary                 |
+| `task build:container`| Build the Docker image                                  |
+| `task run:container`  | Build and run the Docker image                          |
+| `task clean`          | Remove `bin/`, `dist/`, and coverage output             |
 
 ## Rebranding the starter
 

@@ -11,3 +11,4 @@
 - `internal/version/` — Build-time version metadata (commit, semver, tag) using `Masterminds/semver`.
 - `internal/obfusicate/` — Small string-redaction helper exposing `ConcealPrefix` for masking values in log output. Spelling is intentional. Treat as out of scope unless the task explicitly references redaction.
 - `pkg/` — Intentionally empty; reserved for future public packages. Internal code goes in `internal/`.
+- `.github/workflows/` — CI workflows. PR Formatting and PR Checks (200-series flow workflows) call the reusable code-compiles and unit-test workflows (800-series). Naming follows the convention documented in `.github/workflows/docs/naming-standards.md`.

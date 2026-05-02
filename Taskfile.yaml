@@ -90,6 +90,12 @@ tasks:
       - cmd: go mod vendor
         silent: true
 
+  generate:
+    desc: "Run all go:generate directives (version metadata, etc.)"
+    cmds:
+      - cmd: go generate ./...
+        silent: true
+
   build:
     desc: "Build all Go programs"
     cmds:
@@ -131,8 +137,7 @@ tasks:
     cmds:
       - cmd: echo "Building {{.PROJECT_NAME}} daemon for ${GOOS}/${GOARCH}"
         silent: true
-      - cmd: go generate ./...
-        silent: true
+      - task: generate
       - cmd: go build -o bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH} -ldflags="{{.LDFLAGS}}" -trimpath ./cmd/daemon
         silent: true
       - cmd: chmod +x bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH}

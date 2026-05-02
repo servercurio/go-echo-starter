@@ -26,6 +26,7 @@ A fresh clone won't have `vendor/` until `task vendor` (or any task that depends
 - **New top-level module**: register it in `cmd/daemon/main.go` alongside the `api` module.
 - **New config field**: add to the appropriate struct under `internal/application/config_*.go`, give it a sensible default in `DefaultConfig()`, then wire env-var loading using the helpers in `internal/env/`.
 - **New middleware**: if globally applied, add to the middleware stack in `internal/application/application.go`. If module-scoped, pass via `module.WithMiddleware(...)`.
+- **New CI workflow**: file under `.github/workflows/` following the naming convention in `.github/workflows/docs/naming-standards.md` (`ddd-xxxx-name.yaml` file, matching `ddd: [XXXX] Name` workflow `name:`). PR-triggered workflows use the **200** prefix in this repo (the upstream-standard CITR slot, repurposed locally); reusable workflows use **800**. New `go:generate` directives don't need a workflow change — `task generate` is invoked by both reusable workflows and picks them up via `./...`.
 
 ## Things to leave alone unless asked
 

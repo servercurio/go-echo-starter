@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: "200: [FLOW] PR Checks"
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  code-compiles:
+    name: "Code Compiles"
+    uses: ./.github/workflows/800-call-code-compiles.yaml
+    with:
+      custom-job-label: Standard
+
+  unit-tests:
+    name: "Unit Tests"
+    uses: ./.github/workflows/800-call-unit-test.yaml
+    needs:
+      - code-compiles
+    with:
+      custom-job-label: Standard
