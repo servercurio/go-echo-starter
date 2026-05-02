@@ -8,6 +8,7 @@
 - `internal/env/` — Type-safe environment-variable parsers (string, bool, int, uint16, float, duration) and the `APP_` prefix convention.
 - `internal/logging/` — Two named zerolog loggers (`Daemon` for lifecycle, `Access` for HTTP) plus the Echo request-logger middleware.
 - `internal/errors/` — `joomcode/errorx` namespaces (e.g. `FileSystemErrors`); the canonical pattern for new error categories.
+- `internal/health/` — Per-component health-check registry plus the `Report` model returned by `/livez`/`/readyz`/`/healthz`. `health.go` defines `Status`, `ComponentResult`, `Report`, and `Registry` (Spring Boot Actuator-style aggregation: overall UP iff every component UP). `render.go` does Accept-header content negotiation between JSON and YAML.
 - `internal/database/` — Optional SQL database subsystem. `config.go` carries `Driver` + `DSN` (empty DSN ⇒ disabled and the rest is a no-op), `connection.go` wraps a mutex-guarded `*sql.DB` singleton with `Connect`/`Disconnect`/`Connection`/`IsHealthy`, `migration.go` runs Goose migrations embedded from `migrations/sql/*.sql`. Default driver is `pgx` (PostgreSQL).
 - `internal/database/orm/` — Bun ORM singleton (`Configure`/`Database`/`Reset`). Add domain models as sibling files; the starter ships none.
 - `internal/version/` — Build-time version metadata (commit, semver, tag) using `Masterminds/semver`.

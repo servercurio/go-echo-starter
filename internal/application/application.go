@@ -9,8 +9,7 @@ import (
 	"github.com/labstack/echo/v5"
 	mw "github.com/labstack/echo/v5/middleware"
 	"github.com/servercurio/go-echo-starter/internal/config"
-	"github.com/servercurio/go-echo-starter/internal/database"
-	"github.com/servercurio/go-echo-starter/internal/database/orm"
+	"github.com/servercurio/go-echo-starter/internal/health"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 	"github.com/servercurio/go-echo-starter/internal/router"
 )
@@ -33,6 +32,7 @@ type Application struct {
 	userHomeDirectory string
 	certificate       *InMemoryCertificate
 	modules           map[string]router.Module
+	healthRegistry    *health.Registry
 
 	ready atomic.Bool
 }
@@ -50,6 +50,7 @@ func NewApplication(cfg *Config) *Application {
 		ConfigFileName:    defaultConfigName,
 		EnvVariablePrefix: defaultEnvPrefix,
 		config:            cfg,
+		healthRegistry:    health.NewRegistry(),
 		middleware: []echo.MiddlewareFunc{
 			mw.Recover(),
 			mw.RequestID(),
@@ -72,17 +73,6 @@ func NewApplication(cfg *Config) *Application {
 	logging.NotifyDaemonStartup(app.Name, loggingCfg)
 
 	return app
-}
-
-// IsDatabaseHealthy reports whether the configured database is currently
-// reachable. Returns true when the database subsystem is disabled (no DSN
-// configured) so callers can compose readiness probes without special-casing
-// the disabled state.
-func (app *Application) IsDatabaseHealthy() bool {
-	if !app.config.Database.Enabled() {
-		return true
-	}
-	return database.IsHealthy()
 }
 
 func (app *Application) Configure() error {
@@ -140,6 +130,8 @@ func (app *Application) Initialize() error {
 		return err
 	}
 
+	app.registerHealthChecks()
+
 	if err := app.initializeRouting(); err != nil {
 		logging.Daemon.
 			Warn().
@@ -147,32 +139,6 @@ func (app *Application) Initialize() error {
 			Msg("failed to initialize routing")
 	}
 
-	return nil
-}
-
-// initializeDatabase opens the database connection, runs any pending Goose
-// migrations, and configures the Bun ORM singleton. It is a no-op when the
-// database subsystem is disabled (empty DSN), so the daemon can run as a
-// pure HTTP server with no database backing.
-func (app *Application) initializeDatabase() error {
-	if !app.config.Database.Enabled() {
-		logging.Daemon.Info().Msg("database subsystem disabled (no DSN configured)")
-		return nil
-	}
-
-	if err := database.Connect(app.config.Database); err != nil {
-		return errorx.Decorate(err, "database connect failed")
-	}
-
-	if err := database.Migrate(app.config.Database); err != nil {
-		return errorx.Decorate(err, "database migration failed")
-	}
-
-	if err := orm.Configure(); err != nil {
-		return errorx.Decorate(err, "ORM configuration failed")
-	}
-
-	logging.Daemon.Info().Msg("database initialized")
 	return nil
 }
 
@@ -208,10 +174,7 @@ func (app *Application) Start() (int, error) {
 	app.ready.Store(false)
 	app.shutdownHttpServer()
 	app.shutdownTlsServer()
-
-	if err := database.Disconnect(); err != nil {
-		logging.Daemon.Warn().Err(err).Msg("error closing database connection")
-	}
+	app.shutdownDatabase()
 
 	return 0, nil
 }

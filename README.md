@@ -49,6 +49,7 @@ internal/
   env/              # Type-safe environment variable parsers
   logging/          # Zerolog setup, middleware, named loggers
   errors/           # errorx namespaces (FileSystemErrors)
+  health/           # Per-component health Registry, Report model, Accept-header renderer
   database/         # Optional SQL connection pool (pgx), Goose migrations, Bun ORM
     migrations/sql/ # Embedded *.sql migration files
     orm/            # Bun ORM singleton + (your) domain models
@@ -94,15 +95,61 @@ See `internal/application/config_*.go` for the complete schema.
 
 ## Built-in endpoints
 
-The default `v1` module ships three Kubernetes-style health endpoints under `/api/v1/`:
+The default `v1` module ships three Kubernetes-style health endpoints under `/api/v1/`. Response bodies follow the per-component model used by Spring Boot Actuator, Quarkus SmallRye Health, and Micronaut: an overall `status` plus a `components` map with per-subsystem state and optional `details`.
 
-| Path                  | Purpose                  | Behaviour                                                                       |
-|-----------------------|--------------------------|---------------------------------------------------------------------------------|
-| `/api/v1/livez`       | Liveness probe           | Always `200 {"status":"ok"}` while the HTTP listener can respond. Does **not** depend on application state, downstream services, or shutdown — kubelet uses this to decide whether to restart the pod. |
-| `/api/v1/readyz`      | Readiness probe          | `200 {"status":"ok"}` once the application has finished starting up, the readiness probe reports ready, AND (if a database is configured) a `PingContext` against the connection pool succeeds. `503 {"status":"not_ready"}` during startup, after a shutdown signal is received, when the database is unreachable, or if the probe is misconfigured (fail closed). Load balancers should drain traffic when this returns 503. |
-| `/api/v1/healthz`     | Legacy alias for readyz  | Same semantics as `/readyz`. Kept so consumers that default to `/healthz` (older uptime checks, default Cloud LB health-check paths) keep working.       |
+| Path                  | Purpose                  | Status code                                                                                | Components                                                                                       |
+|-----------------------|--------------------------|--------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| `/api/v1/livez`       | Liveness probe           | Always `200`. Liveness must NOT depend on application state — kubelet uses it to decide whether to restart the pod. | `self` only.                                                                                     |
+| `/api/v1/readyz`      | Readiness probe          | `200` when every registered component reports `UP`; `503` when any component reports `DOWN` (or when no registry is wired — fail closed). | All active subsystems: `lifecycle`, `http`, `https` (if enabled), `database` (if configured).     |
+| `/api/v1/healthz`     | Legacy alias for readyz  | Same as `/readyz`.                                                                         | Same as `/readyz`. Kept so consumers that default to `/healthz` (older uptime checks, default cloud-LB health-check paths) keep working. |
 
-Application readiness is wired via `router.Config.ReadinessProbe` — `cmd/daemon/main.go` composes it as `app.IsReady() && app.IsDatabaseHealthy()`. The lifecycle flag flips to `true` after the server goroutines spawn and back to `false` when a shutdown signal arrives. The database probe issues a 1-second `PingContext` against the connection pool on every `/readyz` and `/healthz` request, so the load balancer notices a downed database within one probe interval. When no database is configured, `IsDatabaseHealthy()` returns `true` unconditionally and the readiness check collapses back to lifecycle-only.
+Example `/readyz` response when everything is healthy and a database is configured:
+
+```json
+{
+  "status": "UP",
+  "components": {
+    "lifecycle": { "status": "UP" },
+    "http":      { "status": "UP", "details": { "port": 8080, "bindAddress": "", "hostname": "" } },
+    "https":     { "status": "UP", "details": { "port": 8443, "bindAddress": "", "hostname": "", "useAcmeIssuer": false } },
+    "database":  { "status": "UP", "details": { "driver": "pgx" } }
+  }
+}
+```
+
+When the database is unreachable, the response code becomes `503` and the body's overall `status` flips to `DOWN` while the per-component breakdown shows which dependency failed.
+
+### Content negotiation
+
+Both response formats are supported via the `Accept` header:
+
+| `Accept` header                                            | Response Content-Type                |
+|------------------------------------------------------------|--------------------------------------|
+| _(unset)_, `*/*`, `application/json`, anything not yaml    | `application/json; charset=utf-8`    |
+| `application/yaml`, `application/x-yaml`, `text/yaml`, `*+yaml` | `application/yaml; charset=utf-8`    |
+
+```sh
+curl -s http://localhost:8080/api/v1/readyz                                # JSON
+curl -s -H 'Accept: application/yaml' http://localhost:8080/api/v1/readyz   # YAML
+```
+
+### Adding a custom component
+
+Components live on a `*health.Registry` owned by the `Application` (`app.HealthRegistry()`); the v1 handlers snapshot it on every request. To register a new check:
+
+```go
+app.HealthRegistry().Register("redis", func() health.ComponentResult {
+    if err := redisClient.Ping(ctx).Err(); err != nil {
+        return health.ComponentResult{
+            Status:  health.StatusDown,
+            Details: map[string]any{"reason": err.Error()},
+        }
+    }
+    return health.ComponentResult{Status: health.StatusUp}
+})
+```
+
+The check closure is invoked on every `/readyz` and `/healthz` request, so it should be cheap (sub-second). Stand a cached background probe in front of expensive checks.
 
 ## Database (optional)
 

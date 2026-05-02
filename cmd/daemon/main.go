@@ -15,15 +15,13 @@ func main() {
 	cfg := application.DefaultConfig()
 	app := application.NewApplication(cfg)
 
+	// Wire the application's health registry into the router config so the
+	// v1 health/liveness/readiness handlers can snapshot per-component
+	// status on every request. The registry is populated by Application
+	// during Initialize() (lifecycle, http, https, database — only the
+	// active subsystems are registered).
 	routerCfg := router.NewConfig()
-	// Readiness is the conjunction of application-lifecycle readiness and
-	// database health: /readyz returns 200 only when the server has finished
-	// startup AND the database (if configured) is reachable. When the
-	// database subsystem is disabled, IsDatabaseHealthy() always returns
-	// true, so the probe collapses back to lifecycle-only readiness.
-	routerCfg.ReadinessProbe = func() bool {
-		return app.IsReady() && app.IsDatabaseHealthy()
-	}
+	routerCfg.HealthRegistry = app.HealthRegistry()
 
 	_ = app.RegisterModule(api.Module(routerCfg))
 
