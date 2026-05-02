@@ -35,3 +35,5 @@ jobs:
       - code-compiles
     with:
       custom-job-label: Standard
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
