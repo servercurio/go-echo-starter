@@ -1,0 +1,81 @@
+{
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "breaking": true, "release": "minor" },
+          { "type": "chore", "release": false },
+          { "type": "docs", "release": false },
+          { "type": "style", "release": false },
+          { "type": "refactor", "release": "patch" },
+          { "type": "test", "release": false },
+          { "type": "build", "release": "patch" },
+          { "type": "ci", "release": false }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      { "preset": "conventionalcommits" }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "verifyReleaseCmd": "printf '%s' \"${nextRelease.version}\" > .release-version",
+        "prepareCmd": "printf '%s' \"${nextRelease.version}\" > internal/version/version.txt && task generate",
+        "publishCmd": "task build && task sign"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["internal/version/version.txt"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "bin/appsvrd-linux-amd64", "label": "appsvrd-linux-amd64" },
+          { "path": "bin/appsvrd-linux-amd64.sha256", "label": "appsvrd-linux-amd64.sha256" },
+          { "path": "bin/appsvrd-linux-amd64.sha256.asc", "label": "appsvrd-linux-amd64.sha256.asc" },
+          { "path": "bin/appsvrd-linux-amd64.asc", "label": "appsvrd-linux-amd64.asc" },
+          { "path": "bin/appsvrd-linux-arm64", "label": "appsvrd-linux-arm64" },
+          { "path": "bin/appsvrd-linux-arm64.sha256", "label": "appsvrd-linux-arm64.sha256" },
+          { "path": "bin/appsvrd-linux-arm64.sha256.asc", "label": "appsvrd-linux-arm64.sha256.asc" },
+          { "path": "bin/appsvrd-linux-arm64.asc", "label": "appsvrd-linux-arm64.asc" },
+          { "path": "bin/appsvrd-darwin-amd64", "label": "appsvrd-darwin-amd64" },
+          { "path": "bin/appsvrd-darwin-amd64.sha256", "label": "appsvrd-darwin-amd64.sha256" },
+          { "path": "bin/appsvrd-darwin-amd64.sha256.asc", "label": "appsvrd-darwin-amd64.sha256.asc" },
+          { "path": "bin/appsvrd-darwin-amd64.asc", "label": "appsvrd-darwin-amd64.asc" },
+          { "path": "bin/appsvrd-darwin-arm64", "label": "appsvrd-darwin-arm64" },
+          { "path": "bin/appsvrd-darwin-arm64.sha256", "label": "appsvrd-darwin-arm64.sha256" },
+          { "path": "bin/appsvrd-darwin-arm64.sha256.asc", "label": "appsvrd-darwin-arm64.sha256.asc" },
+          { "path": "bin/appsvrd-darwin-arm64.asc", "label": "appsvrd-darwin-arm64.asc" },
+          { "path": "bin/appsvrd-windows-amd64", "label": "appsvrd-windows-amd64" },
+          { "path": "bin/appsvrd-windows-amd64.sha256", "label": "appsvrd-windows-amd64.sha256" },
+          { "path": "bin/appsvrd-windows-amd64.sha256.asc", "label": "appsvrd-windows-amd64.sha256.asc" },
+          { "path": "bin/appsvrd-windows-amd64.asc", "label": "appsvrd-windows-amd64.asc" },
+          { "path": "bin/appsvrd-windows-arm64", "label": "appsvrd-windows-arm64" },
+          { "path": "bin/appsvrd-windows-arm64.sha256", "label": "appsvrd-windows-arm64.sha256" },
+          { "path": "bin/appsvrd-windows-arm64.sha256.asc", "label": "appsvrd-windows-arm64.sha256.asc" },
+          { "path": "bin/appsvrd-windows-arm64.asc", "label": "appsvrd-windows-arm64.asc" }
+        ]
+      }
+    ]
+  ],
+  "branches": [
+    { "name": "main" },
+    {
+      "name": "release/([0-9]+).([0-9]+)",
+      "channel": "${name.replace(/release\\//g, '').split('.')[0]}.${name.replace(/release\\//g, '').split('.')[1]}.x",
+      "range": "${name.replace(/release\\//g, '').split('.')[0]}.${name.replace(/release\\//g, '').split('.')[1]}.x"
+    },
+    { "name": "alpha/*", "prerelease": "alpha", "channel": "alpha" },
+    { "name": "beta/*", "prerelease": "beta", "channel": "beta" },
+    { "name": "rc/*", "prerelease": "rc", "channel": "rc" }
+  ]
+}

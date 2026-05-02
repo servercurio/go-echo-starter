@@ -96,6 +96,56 @@ tasks:
       - cmd: go generate ./...
         silent: true
 
+  hash:
+    desc: "Generate per-binary SHA-256 hashes (writes bin/<binary>.sha256 per binary)"
+    dir: bin
+    cmds:
+      - cmd: |
+          set -e
+          rm -f *.sha256
+          found=0
+          for f in {{.PROJECT_NAME | lower}}d-*; do
+            case "$f" in
+              *.sha256|*.asc) continue ;;
+            esac
+            [ -f "$f" ] || continue
+            shasum -a 256 "$f" > "${f}.sha256"
+            cat "${f}.sha256"
+            found=1
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "no binaries matching '{{.PROJECT_NAME | lower}}d-*' found in bin/ — run 'task build' first" >&2
+            exit 1
+          fi
+        silent: true
+
+  sign:
+    desc: "GPG-sign each built binary and its sha256 file (writes bin/<binary>.asc and bin/<binary>.sha256.asc per binary). Depends on task hash. Requires gpg with a configured signing key."
+    deps:
+      - hash
+    dir: bin
+    cmds:
+      - cmd: |
+          set -e
+          rm -f *.asc
+          found=0
+          for f in {{.PROJECT_NAME | lower}}d-*; do
+            case "$f" in
+              *.sha256|*.asc) continue ;;
+            esac
+            [ -f "$f" ] || continue
+            gpg --batch --yes --detach-sign --armor --output "${f}.asc" "$f"
+            if [ -f "${f}.sha256" ]; then
+              gpg --batch --yes --detach-sign --armor --output "${f}.sha256.asc" "${f}.sha256"
+            fi
+            found=1
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "no binaries matching '{{.PROJECT_NAME | lower}}d-*' found in bin/ — run 'task build' first" >&2
+            exit 1
+          fi
+        silent: true
+
   build:
     desc: "Build all Go programs"
     cmds:

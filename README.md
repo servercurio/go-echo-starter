@@ -52,8 +52,9 @@ internal/
   version/          # Build-time version metadata
 pkg/                # (reserved for future public packages)
 .github/
-  workflows/        # CI: PR Formatting, PR Checks, reusable code-compiles & unit-test
+  workflows/        # CI: PR Formatting, PR Checks, Deploy Release, reusable callees
     docs/           # Workflow naming-standards reference
+.releaserc.json     # semantic-release configuration (consumed by Deploy Release)
 Taskfile.yaml       # Build, lint, test, run, container tasks
 Dockerfile          # Multi-arch container image (consumes bin/)
 ```
@@ -136,6 +137,8 @@ Then wire it into `internal/api/v1/module.go` by adding `module.WithRoutes(Healt
 | `task` / `task default` | Clean → vendor → lint → build all platform binaries     |
 | `task build`          | Cross-compile for all OS/arch combinations (calls `generate`) |
 | `task generate`       | `go generate ./...` — refresh `internal/version/commit.txt` |
+| `task hash`           | Write a `bin/<binary>.sha256` file per binary           |
+| `task sign`           | GPG-sign each binary and each `.sha256` file (writes `<binary>.asc` and `<binary>.sha256.asc`); depends on `hash` |
 | `task vendor`         | `go mod tidy` + `go mod vendor`                         |
 | `task lint`           | `go fmt` + `go vet` with strict checks                  |
 | `task test`           | `go test -race -cover -parallel 4 ./...`                |
@@ -255,6 +258,71 @@ task run:container
 ```
 
 The image is built `FROM ubuntu:noble` and ships a single static binary built with `CGO_ENABLED=0`.
+
+## Releases
+
+Releases are produced by [semantic-release](https://github.com/semantic-release/semantic-release) and triggered manually via the **Deploy Release** workflow (`100-flow-deploy-release-artifact.yaml`) under the GitHub Actions tab. The release flow:
+
+1. Analyses commits since the last tag using the [conventional-commits](https://www.conventionalcommits.org) preset and decides the next semver version.
+2. Updates `internal/version/version.txt` to the new version and runs `task generate` to refresh `commit.txt`.
+3. Commits the version bump back to the release branch with a `chore(release): X.Y.Z [skip ci]` message. The commit is **GPG-signed** (DCO `Signed-off-by` is appended automatically by a per-clone `prepare-commit-msg` hook installed in CI).
+4. Runs `task build` to produce all six platform binaries, then `task sign` (which transitively runs `task hash`) to produce per-binary `.sha256` files, GPG signatures of the binaries (`.asc`), and GPG signatures of the `.sha256` files (`.sha256.asc`).
+5. Tags the commit and creates a GitHub Release with the binaries, their `.sha256` files, and the corresponding `.asc` and `.sha256.asc` GPG signatures attached as assets.
+
+### Verifying a release
+
+Each platform ships four files: the binary, its `.sha256`, the binary's `.asc`, and the `.sha256.asc`.
+
+```sh
+# byte-correctness only
+shasum -a 256 -c appsvrd-linux-amd64.sha256
+
+# verify the .sha256 file itself was signed by the release key, then check the binary against it
+gpg --verify appsvrd-linux-amd64.sha256.asc appsvrd-linux-amd64.sha256
+shasum -a 256 -c appsvrd-linux-amd64.sha256
+
+# OR verify the binary directly with its detached signature
+gpg --verify appsvrd-linux-amd64.asc appsvrd-linux-amd64
+```
+
+The first GPG path lets you trust just the (small) `.sha256` file and then chain that trust to the binary; the second verifies the binary directly. Either is sufficient.
+
+Branch policy (from `.releaserc.json`):
+
+| Branch pattern   | Channel        | Notes                                                |
+|------------------|----------------|------------------------------------------------------|
+| `main`           | latest         | Default release branch                               |
+| `release/X.Y`    | `X.Y.x`        | Maintenance branches; release range pinned to `X.Y.x` |
+| `alpha/*`        | `alpha`        | Prerelease channel                                   |
+| `beta/*`         | `beta`         | Prerelease channel                                   |
+| `rc/*`           | `rc`           | Release-candidate channel                            |
+
+Release rules (commit type → version bump):
+
+| Type                | Bump  |
+|---------------------|-------|
+| `feat`              | minor |
+| `fix`               | patch |
+| `refactor`, `build` | patch |
+| `BREAKING CHANGE` (footer or `!` in subject) | minor |
+| `chore`, `ci`, `docs`, `style`, `test` | none  |
+
+Run a dry run from the workflow dispatch UI by checking **Perform dry run** — semantic-release will print the version that *would* be released without tagging, committing, or publishing.
+
+> **Note on protected branches**: the workflow uses the default `GITHUB_TOKEN`. If `main` is protected with restrictions that block the GitHub App from pushing back the version-bump commit, configure a PAT (e.g. `GH_ACCESS_TOKEN`) with bypass rights and pass it as `release-token` from `100-flow-deploy-release-artifact.yaml`.
+
+### Required repository secrets
+
+The release workflow requires the following secrets configured under **Settings → Secrets and variables → Actions**:
+
+| Secret             | Purpose                                                                  |
+|--------------------|--------------------------------------------------------------------------|
+| `GPG_PRIVATE_KEY`  | ASCII-armored private GPG key used to sign the release commit and the `SHA256SUMS` file. Generate with `gpg --armor --export-secret-keys <KEY-ID>`. |
+| `GPG_PASSPHRASE`   | Passphrase for the private GPG key.                                      |
+| `GH_ACCESS_TOKEN`  | *(Optional.)* PAT with bypass on protected branches. Only needed if `GITHUB_TOKEN` cannot push the version-bump commit. |
+| `CODECOV_TOKEN`    | *(Optional, used by PR Checks.)* Codecov upload token; recommended for public repos to avoid rate limits, required for private repos. |
+
+The corresponding **public key** must be added to the GitHub account/org used to publish releases (and shared with consumers) so signatures can be verified.
 
 ## License
 
