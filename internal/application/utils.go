@@ -11,6 +11,8 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
+var defaultInsecurePaths = []string{"api/v1/healthz", "api/v1/readyz"}
+
 func configSearchPaths() []string {
 	search := []string{fmt.Sprintf("/etc/%s", defaultConfigPathElement)}
 
@@ -66,6 +68,12 @@ func HTTPSRedirectWithConfig(cfg *TlsConfig) echo.MiddlewareFunc {
 		return func(c *echo.Context) error {
 			if c.Request().TLS != nil {
 				return next(c)
+			}
+
+			for _, path := range defaultInsecurePaths {
+				if strings.Contains(c.Request().URL.Path, path) {
+					return next(c)
+				}
 			}
 
 			hostNoPort := c.Request().Host

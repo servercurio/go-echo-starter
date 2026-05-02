@@ -15,7 +15,10 @@ func main() {
 	cfg := application.DefaultConfig()
 	app := application.NewApplication(cfg)
 
-	_ = app.RegisterModule(api.Module(router.NewConfig()))
+	routerCfg := router.NewConfig()
+	routerCfg.ReadinessProbe = app.IsReady
+
+	_ = app.RegisterModule(api.Module(routerCfg))
 
 	if err := app.Configure(); err != nil {
 		logging.Daemon.

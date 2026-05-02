@@ -9,16 +9,18 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/router"
 )
 
-func HealthRoute() router.Route {
+func HealthRoute(cfg *router.Config) router.Route {
 	return route.New("health", "health", "/healthz",
 		route.WithEndpoints(
 			endpoint.New("health-get", "health-get",
 				endpoint.WithGetMethod(),
 				endpoint.WithHandler(func(c *echo.Context) error {
-					return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+					if cfg.ReadinessProbe != nil && cfg.ReadinessProbe() {
+						return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+					}
+					return c.JSON(http.StatusServiceUnavailable, map[string]string{"status": "not_ready"})
 				}),
 			),
 		),
 	)
-
 }

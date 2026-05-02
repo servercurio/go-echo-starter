@@ -16,6 +16,6 @@ func Module(cfg *router.Config) router.Module {
 		moduleIdentifier,
 		moduleName,
 		modulePrefix,
-		module.WithRoutes(HealthRoute()),
+		module.WithRoutes(HealthRoute(cfg)),
 	)
 }

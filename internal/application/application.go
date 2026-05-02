@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"os/signal"
+	"sync/atomic"
 
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
@@ -30,6 +31,15 @@ type Application struct {
 	userHomeDirectory string
 	certificate       *InMemoryCertificate
 	modules           map[string]router.Module
+
+	ready atomic.Bool
+}
+
+// IsReady reports whether the application is currently accepting traffic. It
+// returns true between the point Start has launched the server goroutines and
+// the point shutdown is initiated.
+func (app *Application) IsReady() bool {
+	return app.ready.Load()
 }
 
 func NewApplication(cfg *Config) *Application {
@@ -148,7 +158,10 @@ func (app *Application) Start() (int, error) {
 	go app.startHttpServer()
 	go app.startTlsServer()
 
+	app.ready.Store(true)
+
 	<-signalCtx.Done()
+	app.ready.Store(false)
 	app.shutdownHttpServer()
 	app.shutdownTlsServer()
 
