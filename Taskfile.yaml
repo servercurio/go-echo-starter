@@ -1,0 +1,181 @@
+version: 3
+output: prefixed
+
+vars:
+  PROJECT_NAME: AppSvr
+  ARCH: [amd64, arm64]
+  OS: [linux, darwin, windows]
+  LDFLAGS: "-w -s"
+#  LDFLAGS: ""
+
+env:
+  CGO_ENABLED: 0
+  APP_DAEMON_LOG_LEVEL: trace
+  APP_DAEMON_LOG_INCLUDE_CALLER: false
+  APP_HTTP_ACCESS_LOG_ENABLED: true
+  APP_HTTP_ACCESS_LOG_LEVEL: info
+  APP_HTTP_ACCESS_LOG_PRETTY_PRINT: true
+  APP_SERVER_HTTPS_ENABLED: true
+  APP_SERVER_HTTP_PORT: 80
+  APP_SERVER_HTTPS_PORT: 443
+  APP_SERVER_HTTPS_USE_ACME_ISSUER: false
+#  APP_SERVER_HTTPS_HOSTNAME: kubernetes.docker.internal
+
+tasks:
+  default:
+    desc: "Clean, lint, and build all Go programs"
+    cmds:
+      - task: clean
+      - task: vendor
+      - task: lint
+      - task: build
+
+  clean:
+    desc: "Remove all generated files"
+    cmds:
+      - task: clean:dist
+      - task: clean:bin
+      - task: clean:test
+
+  clean:dist:
+    desc: "Remove all distribution files"
+    internal: true
+    cmds:
+      - rm -rvf dist
+
+  clean:bin:
+    desc: "Remove all binary files"
+    internal: true
+    cmds:
+      - rm -rvf bin
+
+  clean:test:
+    desc: "Remove all test files"
+    internal: true
+    cmds:
+      - rm -vf cover.out
+
+  clean:cache:
+    desc: "Remove all Go build caches"
+    cmds:
+      - go clean -cache -testcache
+
+  lint:
+    desc: "Run linters on all Go files"
+    cmds:
+      - task: lint:format
+      - task: lint:vet
+
+  lint:format:
+    internal: true
+    desc: "Run go fmt on all Go files"
+    cmds:
+      - go fmt ./...
+
+  lint:vet:
+    internal: true
+    desc: "Run go vet on all Go files"
+    cmds:
+      - go vet -atomic -defers -assign -bools -buildtag -framepointer -lostcancel -loopclosure -nilfunc -shift -stdmethods -stringintconv -structtag ./...
+
+  vendor:
+    desc: "Update Go modules and vendor directory"
+    cmds:
+      - cmd: echo "Tidying up Go modules"
+        silent: true
+      - cmd: go mod tidy
+        silent: true
+      - cmd: echo "Updating vendor directory"
+        silent: true
+      - cmd: go mod vendor
+        silent: true
+
+  build:
+    desc: "Build all Go programs"
+    cmds:
+      - task: build:daemon:all
+
+  build:daemon:all:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon"
+    cmds:
+      - task: build:daemon:all:os
+
+  build:daemon:all:os:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon for all configured operating systems"
+    cmds:
+      - for:
+          var: OS
+        task: build:daemon:all:arch
+        vars:
+          GOOS: "{{.ITEM}}"
+
+  build:daemon:all:arch:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon for all configured architectures"
+    cmds:
+      - for:
+          var: ARCH
+        task: build:daemon
+        vars:
+          GOOS: "{{.GOOS}}"
+          GOARCH: "{{.ITEM}}"
+
+  build:daemon:
+    internal: true
+    desc: "Build the {{.PROJECT_NAME}} daemon for Linux with architecture"
+    env:
+      GOOS: "{{coalesce .GOOS OS}}"
+      GOARCH: "{{coalesce .GOARCH ARCH}}"
+    cmds:
+      - cmd: echo "Building {{.PROJECT_NAME}} daemon for ${GOOS}/${GOARCH}"
+        silent: true
+      - cmd: go generate ./...
+        silent: true
+      - cmd: go build -o bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH} -ldflags="{{.LDFLAGS}}" -trimpath ./cmd/daemon
+        silent: true
+      - cmd: chmod +x bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH}
+        silent: true
+
+  build:container:
+    desc: "Build the {{.PROJECT_NAME}} container"
+    deps:
+      - task: build:daemon
+        vars:
+          GOOS: linux
+    cmds:
+      - docker buildx build --load -t {{.PROJECT_NAME | lower}}:latest .
+
+  test:
+    desc: "Run all tests"
+    env:
+      CGO_ENABLED: 1
+    cmds:
+      - go test -parallel 4 -cover -coverprofile cover.out -race -v ./...
+
+  run:
+    desc: "Run the {{.PROJECT_NAME}} programs"
+    cmds:
+      - task: run:daemon
+
+  run:daemon:
+    desc: "Run the {{.PROJECT_NAME}} daemon"
+    env:
+      GOOS: "{{OS}}"
+      GOARCH: "{{ARCH}}"
+    cmds:
+      - task: vendor
+      - task: build:daemon
+      - cmd: echo "Running {{.PROJECT_NAME}} daemon for ${GOOS}/${GOARCH}"
+        silent: true
+      - cmd: ./bin/{{.PROJECT_NAME | lower}}d-${GOOS}-${GOARCH}
+        silent: true
+
+  run:container:
+    desc: "Run the {{.PROJECT_NAME}} container"
+    deps:
+      - build:container
+    cmds:
+      - docker run --rm -it {{.PROJECT_NAME | lower}}:latest
+
