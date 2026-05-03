@@ -26,12 +26,25 @@ func (m *Standard) Name() string {
 	return m.name
 }
 
+// Prefix returns the URL prefix this module mounts under, normalised to
+// either:
+//
+//   - the empty string for root-mounted modules (prefix was "" or "/"), so
+//     the caller's `server.Group(prefix, ...)` invocation doesn't introduce
+//     a stray leading "/" that Echo would naively concatenate with route
+//     paths into "//route" and 404 every request, or
+//
+//   - a leading-slash form ("/api", "/v1") for nested modules.
+//
+// Without this normalisation, a module constructed with prefix=""
+// effectively can't expose top-level routes — a real footgun, since "no
+// prefix" is exactly what the openapi / swagger modules want.
 func (m *Standard) Prefix() string {
-	if !strings.HasPrefix(m.prefix, router.PathSeparator) {
-		return router.PathSeparator + m.prefix
+	trimmed := strings.Trim(m.prefix, router.PathSeparator)
+	if trimmed == "" {
+		return ""
 	}
-
-	return m.prefix
+	return router.PathSeparator + trimmed
 }
 
 func (m *Standard) Routes() []router.Route {
