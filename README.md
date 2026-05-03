@@ -50,6 +50,7 @@ internal/
   logging/          # Zerolog setup, middleware, named loggers
   errors/           # errorx namespaces (FileSystemErrors)
   health/           # Per-component health Registry, Report model, Accept-header renderer
+  openapi/          # OpenAPI 3.0 spec generator + /openapi.{yaml,json} module + optional Swagger UI module
   database/         # Optional SQL connection pool (pgx), Goose migrations, Bun ORM
     migrations/sql/ # Embedded *.sql migration files
     orm/            # Bun ORM singleton + (your) domain models
@@ -90,6 +91,13 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_SERVER_HTTPS_USE_ACME_ISSUER`    | `false`      | Use Let's Encrypt instead of static certs   |
 | `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
 | `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
+| `APP_OPENAPI_ENABLED`                 | `true`       | Serve generated `/openapi.yaml` and `/openapi.json`             |
+| `APP_OPENAPI_TITLE`                   | `appsvrd`    | OpenAPI `info.title` (defaults to daemon name)                  |
+| `APP_OPENAPI_VERSION`                 | _embedded SemVer_ | OpenAPI `info.version` (defaults to `internal/version.Number()`) |
+| `APP_OPENAPI_DESCRIPTION`             | —            | OpenAPI `info.description`                                       |
+| `APP_OPENAPI_SWAGGER_ENABLED`         | `false`      | Mount Swagger UI                                                 |
+| `APP_OPENAPI_SWAGGER_PATH`            | `/swagger`   | URL prefix Swagger UI is mounted under                           |
+| `APP_OPENAPI_SWAGGER_SPEC_URL`        | `/openapi.yaml` | URL Swagger UI fetches the spec from                          |
 
 See `internal/application/config_*.go` for the complete schema.
 
@@ -150,6 +158,32 @@ app.HealthRegistry().Register("redis", func() health.ComponentResult {
 ```
 
 The check closure is invoked on every `/readyz` and `/healthz` request, so it should be cheap (sub-second). Stand a cached background probe in front of expensive checks.
+
+## API specification (OpenAPI 3.0)
+
+The starter generates an OpenAPI 3.0.3 document directly from whatever modules are registered with `Application` and serves it without any external tooling. No annotations, no `swag init`, no codegen step — the spec is built in-process during `Initialize()` and served as precomputed bytes.
+
+| Path             | Format | Notes                                        |
+|------------------|--------|----------------------------------------------|
+| `/openapi.yaml`  | YAML   | `application/yaml; charset=utf-8`            |
+| `/openapi.json`  | JSON   | `application/json; charset=utf-8`            |
+
+Both endpoints are mounted unconditionally when `APP_OPENAPI_ENABLED=true` (the default). Set `APP_OPENAPI_ENABLED=false` to suppress them entirely (e.g. for production deployments that don't want to advertise their API surface).
+
+The generator walks the `Module → Route → Endpoint` tree and emits one operation per `(path, method)` pair. Echo's `:name` path parameters are rewritten to OpenAPI's `{name}` template syntax, and a `Parameter` of `in: path, type: string` is emitted for each. Each module's `Name()` becomes a `tag` so Swagger UI groups operations by module.
+
+Spec metadata that the route abstraction doesn't carry today (request bodies, response schemas, query/header parameters) is omitted — every operation has a single `200: Successful response`. Extend `internal/openapi/spec.go` and the route abstraction together when you need richer typing.
+
+### Optional: Swagger UI
+
+Set `APP_OPENAPI_SWAGGER_ENABLED=true` to mount [Swaggo's echo-swagger v2](https://github.com/swaggo/echo-swagger) at `/swagger/`, pointed at the generated spec by default:
+
+```sh
+APP_OPENAPI_SWAGGER_ENABLED=true task run:daemon
+# then open: http://localhost:8080/swagger/index.html
+```
+
+The dependency is always compiled in (~1MB binary overhead) but no routes are mounted unless `Swagger.Enabled` is true. Override `APP_OPENAPI_SWAGGER_PATH` to mount under a different prefix, or `APP_OPENAPI_SWAGGER_SPEC_URL` to point the UI at an externally hosted spec.
 
 ## Database (optional)
 

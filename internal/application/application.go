@@ -104,6 +104,7 @@ func (app *Application) Configure() error {
 	NotifyHttpsServerConfig(app.config.Server.Https)
 	NotifyProxySupportConfig(app.config.Proxy)
 	NotifyDatabaseConfig(app.config.Database)
+	NotifyOpenAPIConfig(app.config.OpenAPI)
 
 	return nil
 }
@@ -131,6 +132,10 @@ func (app *Application) Initialize() error {
 	}
 
 	app.registerHealthChecks()
+
+	if err := app.initializeOpenAPI(); err != nil {
+		return err
+	}
 
 	if err := app.initializeRouting(); err != nil {
 		logging.Daemon.

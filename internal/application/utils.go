@@ -69,6 +69,16 @@ func NotifyDatabaseConfig(cfg *database.Config) {
 		Msg("database configuration")
 }
 
+func NotifyOpenAPIConfig(cfg *OpenAPIConfig) {
+	if cfg == nil {
+		return
+	}
+
+	logging.Daemon.Info().
+		EmbedObject(cfg).
+		Msg("openapi configuration")
+}
+
 func HTTPSRedirectWithConfig(cfg *TlsConfig) echo.MiddlewareFunc {
 	portSpec := ""
 	if cfg.Port != 443 {
