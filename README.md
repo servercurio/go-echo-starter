@@ -172,7 +172,41 @@ Both endpoints are mounted unconditionally when `APP_OPENAPI_ENABLED=true` (the 
 
 The generator walks the `Module → Route → Endpoint` tree and emits one operation per `(path, method)` pair. Echo's `:name` path parameters are rewritten to OpenAPI's `{name}` template syntax, and a `Parameter` of `in: path, type: string` is emitted for each. Each module's `Name()` becomes a `tag` so Swagger UI groups operations by module.
 
-Spec metadata that the route abstraction doesn't carry today (request bodies, response schemas, query/header parameters) is omitted — every operation has a single `200: Successful response`. Extend `internal/openapi/spec.go` and the route abstraction together when you need richer typing.
+### Declaring request and response schemas
+
+Endpoints opt into richer documentation via builder options on `endpoint`. The reflection-based schema generator at `internal/openapi/schema.go` converts the Go types you declare into JSON Schemas, registers each named struct under `components.schemas`, and operations reference it via `$ref` so each shape appears once in the spec.
+
+```go
+endpoint.New("user-create-post", "user-create-post",
+    endpoint.WithPostMethod(),
+    endpoint.WithSummary("Create a user"),
+    endpoint.WithDescription("Persists a new user record."),
+    endpoint.WithRequest(CreateUserRequest{}),                       // application/json body
+    endpoint.WithResponse(http.StatusCreated, User{}, "Created"),     // 201 with User schema
+    endpoint.WithResponse(http.StatusBadRequest, ErrorResponse{}, "Validation failed"),
+    endpoint.WithHandler(createUser),
+)
+```
+
+What the generator handles:
+
+| Go construct                       | OpenAPI representation                              |
+|------------------------------------|-----------------------------------------------------|
+| `string`, `bool`, ints, floats     | inline scalar with `type` + `format` set            |
+| `time.Time`                        | `type: string, format: date-time`                   |
+| `[]byte`                           | `type: string, format: byte` (base64)               |
+| Other slices                       | `type: array, items: <inner>`                       |
+| `map[string]T`                     | `type: object, additionalProperties: <T>`           |
+| `*T`                               | schema for `T` with `nullable: true` (or omitted from `required`) |
+| Named struct                       | registered under `components.schemas`, referenced via `$ref` |
+| Anonymous struct                   | inlined                                             |
+| Embedded struct                    | fields lifted into the parent schema (matches `encoding/json`) |
+| `any` / `interface{}`              | free-form schema (no `type` constraint)             |
+| Recursive struct (`A` → `*A`)      | `$ref` back to the same schema (no infinite recursion) |
+
+JSON struct tags are honored: `json:"name"` renames the property, `omitempty` excludes the field from `required`, and `json:"-"` skips it entirely. Unexported fields are skipped, but embedded struct fields are lifted regardless of the embedded field's name visibility (matches `encoding/json` flattening).
+
+Endpoints without any `WithResponse` calls fall back to a generic `200: Successful response` so the spec stays valid; once you declare any response, the generator uses your declarations exclusively (no auto-200 is appended).
 
 ### Optional: Swagger UI
 

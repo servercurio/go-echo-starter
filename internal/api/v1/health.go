@@ -24,6 +24,9 @@ func LivenessRoute() router.Route {
 		route.WithEndpoints(
 			endpoint.New("liveness-get", "liveness-get",
 				endpoint.WithGetMethod(),
+				endpoint.WithSummary("Liveness probe"),
+				endpoint.WithDescription("Returns 200 whenever the process is able to respond to HTTP. Used by Kubernetes' liveness probe to decide whether to restart the pod."),
+				endpoint.WithResponse(http.StatusOK, health.Report{}, "Process is alive"),
 				endpoint.WithHandler(func(c *echo.Context) error {
 					report := health.Report{
 						Status: health.StatusUp,
@@ -68,6 +71,10 @@ func HealthRoute(cfg *router.Config) router.Route {
 func snapshotEndpoint(id, name string, cfg *router.Config) router.Endpoint {
 	return endpoint.New(id, name,
 		endpoint.WithGetMethod(),
+		endpoint.WithSummary("Readiness probe"),
+		endpoint.WithDescription("Aggregates the status of every registered component. Returns 200 when every component reports UP; 503 when any reports DOWN. Used by load balancers / Kubernetes readiness probes to drain traffic from unhealthy instances."),
+		endpoint.WithResponse(http.StatusOK, health.Report{}, "All components are UP"),
+		endpoint.WithResponse(http.StatusServiceUnavailable, health.Report{}, "At least one component is DOWN"),
 		endpoint.WithHandler(func(c *echo.Context) error {
 			if cfg == nil || cfg.HealthRegistry == nil {
 				return health.Render(c, http.StatusServiceUnavailable, health.Report{
