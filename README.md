@@ -409,7 +409,7 @@ The image is built `FROM ubuntu:noble` and ships a single static binary built wi
 
 ## Releases
 
-Releases are produced by [semantic-release](https://github.com/semantic-release/semantic-release) and triggered manually via the **Deploy Release** workflow (`100-flow-deploy-release-artifact.yaml`) under the GitHub Actions tab. The release flow:
+Releases are produced by [semantic-release](https://github.com/semantic-release/semantic-release) and triggered manually via the **Deploy Release** workflow (`100-user-deploy-release-artifact.yaml`) under the GitHub Actions tab. The release flow:
 
 1. Analyses commits since the last tag using the [conventional-commits](https://www.conventionalcommits.org) preset and decides the next semver version.
 2. Updates `internal/version/version.txt` to the new version and runs `task generate` to refresh `commit.txt`.
@@ -457,7 +457,7 @@ Release rules (commit type → version bump):
 
 Run a dry run from the workflow dispatch UI by checking **Perform dry run** — semantic-release will print the version that *would* be released without tagging, committing, or publishing.
 
-> **Note on protected branches**: the workflow uses the default `GITHUB_TOKEN`. If `main` is protected with restrictions that block the GitHub App from pushing back the version-bump commit, configure a PAT (e.g. `GH_ACCESS_TOKEN`) with bypass rights and pass it as `release-token` from `100-flow-deploy-release-artifact.yaml`.
+> **Note on protected branches**: the workflow uses the default `GITHUB_TOKEN`. If `main` is protected with restrictions that block the GitHub App from pushing back the version-bump commit, configure a PAT (e.g. `GH_ACCESS_TOKEN`) with bypass rights and pass it as `release-token` from `100-user-deploy-release-artifact.yaml`.
 
 ### Required repository secrets
 

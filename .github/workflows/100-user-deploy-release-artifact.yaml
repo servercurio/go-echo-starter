@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
-name: "100: [FLOW] Deploy Release"
+name: "100: [USER] Deploy Release"
 on:
   workflow_dispatch:
     inputs:
