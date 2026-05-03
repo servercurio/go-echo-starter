@@ -119,7 +119,7 @@ Example `/readyz` response when everything is healthy and a database is configur
   "components": {
     "lifecycle": { "status": "UP" },
     "http":      { "status": "UP", "details": { "port": 8080, "bindAddress": "", "hostname": "" } },
-    "https":     { "status": "UP", "details": { "port": 8443, "bindAddress": "", "hostname": "", "useAcmeIssuer": false } },
+    "https":     { "status": "UP", "details": { "port": 8443, "bindAddress": "", "hostname": "", "autoCertIssuance": true, "useAcmeIssuer": false, "ephemeralCertIssuance": true } },
     "database":  { "status": "UP", "details": { "driver": "pgx" } }
   }
 }

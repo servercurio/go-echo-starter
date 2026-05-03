@@ -1,6 +1,10 @@
 package application
 
-import "github.com/servercurio/go-echo-starter/internal/health"
+import (
+	"strings"
+
+	"github.com/servercurio/go-echo-starter/internal/health"
+)
 
 // HealthRegistry returns the per-Application health registry. Wire this into
 // router.Config so the v1 health/liveness/readiness handlers can snapshot
@@ -41,17 +45,35 @@ func (app *Application) registerHealthChecks() {
 	})
 
 	// HTTPS: only registered when enabled — disabled subsystems shouldn't
-	// appear in the report at all.
+	// appear in the report at all. Three certificate-source flags surface
+	// which path the daemon is taking at runtime, mirroring the truth
+	// table in TlsConfig.MarshalZerologObject:
+	//
+	//   autoCertIssuance       — true when neither cert nor key file is
+	//                             configured; the daemon issues its own
+	//                             certificate (either ACME or ephemeral).
+	//   useAcmeIssuer          — config flag; true means use ACME
+	//                             (Let's Encrypt), false means use an
+	//                             ephemeral self-signed cert.
+	//   ephemeralCertIssuance  — derived: autoCertIssuance && !useAcmeIssuer.
+	//                             Operators glance at this to confirm
+	//                             they're not accidentally serving a
+	//                             self-signed cert in production.
 	tlsCfg := app.config.Server.Https
 	if tlsCfg != nil && tlsCfg.Enabled {
 		app.healthRegistry.Register("https", func() health.ComponentResult {
+			autoCert := strings.TrimSpace(tlsCfg.Certificate) == "" || strings.TrimSpace(tlsCfg.Key) == ""
+			ephemeral := autoCert && !tlsCfg.UseAcmeIssuer
+
 			return health.ComponentResult{
 				Status: health.StatusUp,
 				Details: map[string]any{
-					"port":          tlsCfg.Port,
-					"bindAddress":   tlsCfg.BindAddress,
-					"hostname":      tlsCfg.Hostname,
-					"useAcmeIssuer": tlsCfg.UseAcmeIssuer,
+					"port":                  tlsCfg.Port,
+					"bindAddress":           tlsCfg.BindAddress,
+					"hostname":              tlsCfg.Hostname,
+					"autoCertIssuance":      autoCert,
+					"useAcmeIssuer":         tlsCfg.UseAcmeIssuer,
+					"ephemeralCertIssuance": ephemeral,
 				},
 			}
 		})
