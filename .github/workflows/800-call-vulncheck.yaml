@@ -9,6 +9,11 @@ on:
         type: string
         required: false
         default: "1.26.2"
+      govulncheck-version:
+        description: "govulncheck CLI module version (golang.org/x/vuln):"
+        type: string
+        required: false
+        default: "v1.3.0"
       custom-job-label:
         description: "Custom Job Label:"
         type: string
@@ -41,8 +46,14 @@ jobs:
           go-version: ${{ inputs.go-version || '1.26.2' }}
           check-latest: false
 
+      # govulncheck is invoked directly via `go install` rather than through
+      # the golang/govulncheck-action wrapper. The wrapper's action.yml
+      # references actions/checkout and actions/setup-go by tag, which the
+      # repo's transitive-SHA-pinning policy rejects. `go install` is a
+      # `run:` shell command, not an action, so it isn't subject to that
+      # rule — and it lets us pin the CLI to an exact module version.
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@${{ inputs.govulncheck-version || 'v1.3.0' }}
+
       - name: Run govulncheck
-        uses: golang/govulncheck-action@b625fbe08f3bccbe446d94fbf87fcc875a4f50ee # v1.0.4
-        with:
-          go-version-input: ${{ inputs.go-version || '1.26.2' }}
-          go-package: ./...
+        run: govulncheck ./...
