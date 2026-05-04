@@ -61,7 +61,7 @@ internal/
   version/          # Build-time version metadata
 pkg/                # (reserved for future public packages)
 .github/
-  workflows/        # CI: PR Formatting, PR Checks, Deploy Release, reusable callees
+  workflows/        # CI: PR Formatting, PR Checks, CodeQL Scanning, Deploy Release, reusable callees
     docs/           # Workflow naming-standards reference
 .releaserc.json     # semantic-release configuration (consumed by Deploy Release)
 Taskfile.yaml       # Build, lint, test, run, container tasks
@@ -293,7 +293,7 @@ Then wire it into `internal/api/v1/module.go` by adding `PingRoute()` to the exi
 | `task sign`           | GPG-sign each binary and each `.sha256` file (writes `<binary>.asc` and `<binary>.sha256.asc`); depends on `hash` |
 | `task vendor`         | `go mod tidy` + `go mod vendor`                         |
 | `task lint`           | `go fmt` + `go vet` with strict checks                  |
-| `task test`           | `go test -race -cover -parallel 4 ./...`                |
+| `task test`           | `go test -race -cover -coverprofile cover.out -parallel 4 -v ./...` |
 | `task run:daemon`     | Build and run the local-platform binary                 |
 | `task build:container`| Build the Docker image                                  |
 | `task run:container`  | Build and run the Docker image                          |
@@ -409,7 +409,7 @@ task build:container
 task run:container
 ```
 
-The image is built `FROM ubuntu:noble` and ships a single static binary built with `CGO_ENABLED=0`.
+The image is built from a date-pinned `ubuntu:noble-*` tag (see `Dockerfile`) and ships a single static binary built with `CGO_ENABLED=0`.
 
 ## Releases
 
