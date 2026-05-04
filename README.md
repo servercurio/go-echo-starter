@@ -8,6 +8,31 @@ A production-ready HTTP server starter template built on [Echo v5](https://githu
 
 The compiled binary is named `appsvrd` (application server daemon).
 
+## Table of contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick start](#quick-start)
+- [Project layout](#project-layout)
+- [Configuration](#configuration)
+  - [Config files](#config-files)
+  - [Environment variables](#environment-variables)
+- [Built-in endpoints](#built-in-endpoints)
+  - [Content negotiation](#content-negotiation)
+  - [Adding a custom component](#adding-a-custom-component)
+- [API specification (OpenAPI 3.0)](#api-specification-openapi-30)
+  - [Declaring request and response schemas](#declaring-request-and-response-schemas)
+  - [Optional: Swagger UI](#optional-swagger-ui)
+- [Database (optional)](#database-optional)
+- [Adding a route](#adding-a-route)
+- [Build tasks](#build-tasks)
+- [Rebranding the starter](#rebranding-the-starter)
+- [Container](#container)
+- [Releases](#releases)
+  - [Verifying a release](#verifying-a-release)
+  - [Required repository secrets](#required-repository-secrets)
+- [License](#license)
+
 ## Features
 
 - **Echo v5** HTTP framework with a curated middleware stack (Recover, RequestID, Gzip, structured access log, CORS, security headers)
