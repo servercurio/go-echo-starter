@@ -16,6 +16,10 @@ import (
 func (app *Application) configureHttpServer() error {
 	app.httpServer.Use(app.middleware...)
 
+	if cors := CorsMiddleware(app.config.Server.Cors); cors != nil {
+		app.httpServer.Use(cors)
+	}
+
 	bodyLimit, err := parseByteSize(app.config.Server.Http.MaxBodySize)
 	if err != nil {
 		return errorx.IllegalArgument.Wrap(err, "invalid http max body size %q", app.config.Server.Http.MaxBodySize)

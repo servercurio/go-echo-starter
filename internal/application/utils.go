@@ -10,6 +10,7 @@ import (
 
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
+	mw "github.com/labstack/echo/v5/middleware"
 	"github.com/servercurio/go-echo-starter/internal/database"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
@@ -51,6 +52,16 @@ func NotifyHttpsServerConfig(cfg *TlsConfig) {
 		Msg("https server configuration")
 }
 
+func NotifyCorsConfig(cfg *CorsConfig) {
+	if cfg == nil {
+		return
+	}
+
+	logging.Daemon.Info().
+		EmbedObject(cfg).
+		Msg("cors configuration")
+}
+
 func NotifyProxySupportConfig(cfg *ProxyConfig) {
 	if cfg == nil {
 		return
@@ -79,6 +90,22 @@ func NotifyOpenAPIConfig(cfg *OpenAPIConfig) {
 	logging.Daemon.Info().
 		EmbedObject(cfg).
 		Msg("openapi configuration")
+}
+
+// CorsMiddleware returns CORS middleware configured from cfg, or nil when CORS
+// is disabled (no AllowOrigins). Callers should skip Use() when nil is
+// returned so the middleware chain doesn't include a no-op handler.
+func CorsMiddleware(cfg *CorsConfig) echo.MiddlewareFunc {
+	if !cfg.Enabled() {
+		return nil
+	}
+	return mw.CORSWithConfig(mw.CORSConfig{
+		AllowOrigins:     cfg.AllowOrigins,
+		AllowMethods:     cfg.AllowMethods,
+		AllowHeaders:     cfg.AllowHeaders,
+		AllowCredentials: cfg.AllowCredentials,
+		MaxAge:           cfg.MaxAge,
+	})
 }
 
 // parseByteSize parses a human-readable byte-size string (e.g. "1MB", "500KB",
@@ -123,6 +150,8 @@ func HTTPSRedirectWithConfig(cfg *TlsConfig) echo.MiddlewareFunc {
 		portSpec = fmt.Sprintf(":%d", cfg.Port)
 	}
 
+	configuredHost := strings.TrimSpace(cfg.Hostname)
+
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
 			if c.Request().TLS != nil {
@@ -135,9 +164,16 @@ func HTTPSRedirectWithConfig(cfg *TlsConfig) echo.MiddlewareFunc {
 				}
 			}
 
-			hostNoPort := c.Request().Host
-			if strings.Contains(hostNoPort, ":") {
-				hostNoPort = strings.Split(hostNoPort, ":")[0]
+			// Prefer the configured hostname over the client-supplied Host
+			// header. A malicious client can spoof Host to redirect victims
+			// to attacker-controlled domains; using the configured hostname
+			// pins the redirect target to a value the operator chose.
+			hostNoPort := configuredHost
+			if hostNoPort == "" {
+				hostNoPort = c.Request().Host
+				if i := strings.Index(hostNoPort, ":"); i >= 0 {
+					hostNoPort = hostNoPort[:i]
+				}
 			}
 
 			redirectUrl := fmt.Sprintf("https://%s%s%s",
