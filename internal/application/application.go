@@ -3,7 +3,9 @@ package application
 import (
 	"context"
 	"os/signal"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
@@ -170,15 +172,45 @@ func (app *Application) Start() (int, error) {
 		signal.NotifyContext(context.Background(), shutdownSignals...)
 	defer signalCancel()
 
-	go app.startHttpServer()
-	go app.startTlsServer()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		app.startHttpServer(signalCtx)
+	}()
+	go func() {
+		defer wg.Done()
+		app.startTlsServer(signalCtx)
+	}()
 
 	app.ready.Store(true)
 
 	<-signalCtx.Done()
 	app.ready.Store(false)
-	app.shutdownHttpServer()
-	app.shutdownTlsServer()
+
+	// Echo v5 shuts each server down internally when signalCtx cancels (using
+	// the GracefulTimeout we set on StartConfig). Wait for the goroutines to
+	// finish, but bound the wait so a stalled handler can't hang the process.
+	maxShutdown := app.config.Server.Http.ShutdownTimeout
+	if app.config.Server.Https != nil && app.config.Server.Https.ShutdownTimeout > maxShutdown {
+		maxShutdown = app.config.Server.Https.ShutdownTimeout
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		logging.Daemon.Info().Msg("server goroutines shut down cleanly")
+	case <-time.After(maxShutdown + 5*time.Second):
+		logging.Daemon.Warn().
+			Dur("timeout", maxShutdown+5*time.Second).
+			Msg("server goroutines did not return within shutdown timeout")
+	}
+
 	app.shutdownDatabase()
 
 	return 0, nil

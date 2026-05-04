@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
 	"github.com/servercurio/go-echo-starter/internal/database"
 	"github.com/servercurio/go-echo-starter/internal/logging"
@@ -77,6 +79,42 @@ func NotifyOpenAPIConfig(cfg *OpenAPIConfig) {
 	logging.Daemon.Info().
 		EmbedObject(cfg).
 		Msg("openapi configuration")
+}
+
+// parseByteSize parses a human-readable byte-size string (e.g. "1MB", "500KB",
+// "2GB", "1024") into a byte count. The suffix is case-insensitive; bare
+// numbers are treated as bytes. Returns an error for unrecognised suffixes or
+// non-numeric magnitudes.
+func parseByteSize(s string) (int64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, errorx.IllegalArgument.New("empty byte size")
+	}
+
+	upper := strings.ToUpper(s)
+	mult := int64(1)
+	switch {
+	case strings.HasSuffix(upper, "GB"):
+		mult = 1024 * 1024 * 1024
+		upper = strings.TrimSuffix(upper, "GB")
+	case strings.HasSuffix(upper, "MB"):
+		mult = 1024 * 1024
+		upper = strings.TrimSuffix(upper, "MB")
+	case strings.HasSuffix(upper, "KB"):
+		mult = 1024
+		upper = strings.TrimSuffix(upper, "KB")
+	case strings.HasSuffix(upper, "B"):
+		upper = strings.TrimSuffix(upper, "B")
+	}
+
+	n, err := strconv.ParseInt(strings.TrimSpace(upper), 10, 64)
+	if err != nil {
+		return 0, errorx.IllegalArgument.Wrap(err, "invalid byte size %q", s)
+	}
+	if n < 0 {
+		return 0, errorx.IllegalArgument.New("byte size must be non-negative: %q", s)
+	}
+	return n * mult, nil
 }
 
 func HTTPSRedirectWithConfig(cfg *TlsConfig) echo.MiddlewareFunc {

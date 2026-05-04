@@ -20,6 +20,7 @@ import (
 
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
+	mw "github.com/labstack/echo/v5/middleware"
 	ce "github.com/servercurio/go-echo-starter/internal/errors"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 	"golang.org/x/crypto/acme/autocert"
@@ -47,6 +48,13 @@ func (app *Application) configureTlsServer() error {
 	}
 
 	app.tlsServer.Use(app.middleware...)
+
+	bodyLimit, err := parseByteSize(app.config.Server.Https.MaxBodySize)
+	if err != nil {
+		return errorx.IllegalArgument.Wrap(err, "invalid https max body size %q", app.config.Server.Https.MaxBodySize)
+	}
+	app.tlsServer.Use(mw.BodyLimit(bodyLimit))
+
 	app.tlsServer.Logger = slog.New(slog.DiscardHandler)
 
 	autoTlsEnabled := app.autoTlsEnabled()
@@ -195,7 +203,7 @@ func (app *Application) configureAutoTlsManager() error {
 	return nil
 }
 
-func (app *Application) startTlsServer() {
+func (app *Application) startTlsServer(ctx context.Context) {
 	if !app.config.Server.Https.Enabled {
 		return
 	}
@@ -209,10 +217,18 @@ func (app *Application) startTlsServer() {
 		Bool("ephemeralCertIssuance", !app.config.Server.Https.UseAcmeIssuer).
 		Msg("https server started")
 
+	tlsCfg := app.config.Server.Https
 	sc := &echo.StartConfig{
 		HideBanner:      true,
 		Address:         address,
-		GracefulTimeout: app.config.Server.Https.ShutdownTimeout,
+		GracefulTimeout: tlsCfg.ShutdownTimeout,
+		BeforeServeFunc: func(s *http.Server) error {
+			s.ReadTimeout = tlsCfg.ReadTimeout
+			s.ReadHeaderTimeout = tlsCfg.ReadHeaderTimeout
+			s.WriteTimeout = tlsCfg.WriteTimeout
+			s.IdleTimeout = tlsCfg.IdleTimeout
+			return nil
+		},
 	}
 
 	if app.autoTlsEnabled() {
@@ -230,7 +246,7 @@ func (app *Application) startTlsServer() {
 
 			sc.TLSConfig = acm.TLSConfig()
 
-			if err := sc.Start(context.Background(), app.tlsServer); !errors.Is(err, http.ErrServerClosed) {
+			if err := sc.Start(ctx, app.tlsServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logging.Daemon.Error().
 					Err(errorx.EnsureStackTrace(err)).
 					Msg("https server shutting down due to an error")
@@ -238,7 +254,7 @@ func (app *Application) startTlsServer() {
 			return
 		}
 
-		if err := sc.StartTLS(context.Background(), app.tlsServer, app.certificate.Certificate, app.certificate.PrivateKey); !errors.Is(err, http.ErrServerClosed) {
+		if err := sc.StartTLS(ctx, app.tlsServer, app.certificate.Certificate, app.certificate.PrivateKey); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logging.Daemon.Error().
 				Err(errorx.EnsureStackTrace(err)).
 				Msg("https server shutting down due to an error")
@@ -246,15 +262,9 @@ func (app *Application) startTlsServer() {
 		return
 	}
 
-	if err := sc.StartTLS(context.Background(), app.tlsServer, app.config.Server.Https.Certificate, app.config.Server.Https.Key); !errors.Is(err, http.ErrServerClosed) {
+	if err := sc.StartTLS(ctx, app.tlsServer, app.config.Server.Https.Certificate, app.config.Server.Https.Key); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logging.Daemon.Error().
 			Err(errorx.EnsureStackTrace(err)).
 			Msg("https server shutting down due to an error")
-	}
-}
-
-func (app *Application) shutdownTlsServer() {
-	if !app.config.Server.Https.Enabled {
-		return
 	}
 }
