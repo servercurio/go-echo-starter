@@ -50,6 +50,10 @@ func (app *Application) configureTlsServer() error {
 
 	app.tlsServer.Use(app.middleware...)
 
+	if cors := CorsMiddleware(app.config.Server.Cors); cors != nil {
+		app.tlsServer.Use(cors)
+	}
+
 	bodyLimit, err := parseByteSize(app.config.Server.Https.MaxBodySize)
 	if err != nil {
 		return errorx.IllegalArgument.Wrap(err, "invalid https max body size %q", app.config.Server.Https.MaxBodySize)

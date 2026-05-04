@@ -61,7 +61,6 @@ func NewApplication(cfg *Config) *Application {
 				MinLength: 2 * 1024,
 			}),
 			logging.EchoMiddleware(),
-			mw.CORS("*"),
 			//mw.CSRF(),
 			mw.Secure(),
 		},
@@ -104,6 +103,7 @@ func (app *Application) Configure() error {
 
 	NotifyHttpServerConfig(app.config.Server.Http)
 	NotifyHttpsServerConfig(app.config.Server.Https)
+	NotifyCorsConfig(app.config.Server.Cors)
 	NotifyProxySupportConfig(app.config.Proxy)
 	NotifyDatabaseConfig(app.config.Database)
 	NotifyOpenAPIConfig(app.config.OpenAPI)

@@ -104,6 +104,11 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_SERVER_HTTPS_WRITE_TIMEOUT`      | `30s`        | Max time to write response (HTTPS)          |
 | `APP_SERVER_HTTPS_IDLE_TIMEOUT`       | `120s`       | Keep-alive idle timeout (HTTPS)             |
 | `APP_SERVER_HTTPS_MAX_BODY_SIZE`      | `1MB`        | Max request body size; oversize → 413 (HTTPS) |
+| `APP_SERVER_CORS_ALLOW_ORIGINS`       | _(empty — CORS disabled)_ | Comma-separated list of origins (e.g. `https://app.example.com,https://admin.example.com`). Empty disables CORS entirely. |
+| `APP_SERVER_CORS_ALLOW_METHODS`       | —            | Comma-separated method allowlist; defaults to GET/HEAD/PUT/PATCH/POST/DELETE if unset and CORS is enabled. |
+| `APP_SERVER_CORS_ALLOW_HEADERS`       | —            | Comma-separated request-header allowlist                                                                  |
+| `APP_SERVER_CORS_ALLOW_CREDENTIALS`   | `false`      | Allow cookies/auth headers in cross-origin requests. Cannot be combined with wildcard origins.            |
+| `APP_SERVER_CORS_MAX_AGE`             | `0`          | Preflight cache lifetime in seconds                                                                       |
 | `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
 | `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
 | `APP_DATABASE_MAX_OPEN_CONNS`         | `25`         | Max open connections in the pool. Zero/negative = unlimited.                                          |
