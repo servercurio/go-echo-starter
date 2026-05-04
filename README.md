@@ -39,7 +39,7 @@ task run:daemon
 task test
 ```
 
-The daemon listens on `:8080` (HTTP) and `:8443` (HTTPS) by default.
+`task run:daemon` binds to `127.0.0.1:8888` (HTTP) and `127.0.0.1:4443` (HTTPS) via the dev overrides in `Taskfile.yaml`. The binary's own defaults — when run outside the Taskfile — are `:8080` (HTTP) and `:8443` (HTTPS).
 
 ## Project layout
 
