@@ -48,6 +48,11 @@ func Connect(cfg *Config) error {
 		return errorx.InitializationFailed.Wrap(err, "failed to open database connection")
 	}
 
+	conn.SetMaxOpenConns(cfg.MaxOpenConns)
+	conn.SetMaxIdleConns(cfg.MaxIdleConns)
+	conn.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	conn.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+
 	if err = conn.Ping(); err != nil {
 		_ = conn.Close()
 		return errorx.InitializationFailed.Wrap(err, "failed to ping database")

@@ -95,6 +95,10 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_SERVER_HTTPS_USE_ACME_ISSUER`    | `false`      | Use Let's Encrypt instead of static certs   |
 | `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
 | `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
+| `APP_DATABASE_MAX_OPEN_CONNS`         | `25`         | Max open connections in the pool. Zero/negative = unlimited.                                          |
+| `APP_DATABASE_MAX_IDLE_CONNS`         | `5`          | Max idle connections retained in the pool                                                             |
+| `APP_DATABASE_CONN_MAX_LIFETIME`      | `1h`         | Max lifetime of a connection before recycling                                                         |
+| `APP_DATABASE_CONN_MAX_IDLE_TIME`     | `5m`         | Max time a connection may sit idle in the pool                                                        |
 | `APP_OPENAPI_ENABLED`                 | `true`       | Serve generated `/openapi.yaml` and `/openapi.json`             |
 | `APP_OPENAPI_TITLE`                   | `appsvrd`    | OpenAPI `info.title` (defaults to daemon name)                  |
 | `APP_OPENAPI_VERSION`                 | _embedded SemVer_ | OpenAPI `info.version` (defaults to `internal/version.Number()`) |
