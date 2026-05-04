@@ -16,7 +16,7 @@ When asked to add functionality, prefer keeping the codebase generic and composa
 
 ## Local environment vs binary defaults
 
-The `Taskfile.yaml` env block sets `APP_DAEMON_LOG_LEVEL=trace`, enables HTTPS, and uses ports 80/443 — those are developer-convenience overrides, **not** the binary's defaults. The binary itself defaults to HTTP on `:8080` with HTTPS disabled. Don't assume Taskfile env values when reasoning about production behavior.
+The `Taskfile.yaml` env block sets `APP_DAEMON_LOG_LEVEL=trace`, enables HTTPS, and uses ports 8080/4343 — those are developer-convenience overrides, **not** the binary's defaults. The binary itself defaults to HTTP on `:8080` with HTTPS disabled. Don't assume Taskfile env values when reasoning about production behavior.
 
 A fresh clone won't have `vendor/` until `task vendor` (or any task that depends on it, like `task build`) runs.
 
