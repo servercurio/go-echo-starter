@@ -10,8 +10,6 @@ import (
 )
 
 func TestParseByteSize(t *testing.T) {
-	t.Parallel()
-
 	cases := []struct {
 		in      string
 		want    int64
@@ -55,8 +53,6 @@ func TestParseByteSize(t *testing.T) {
 // when a hostname is configured, the redirect target ignores the client-supplied
 // Host header.
 func TestHTTPSRedirectUsesConfiguredHostname(t *testing.T) {
-	t.Parallel()
-
 	cfg := &TlsConfig{
 		HttpConfig: &HttpConfig{
 			Hostname: "api.example.com",
@@ -97,8 +93,6 @@ func TestHTTPSRedirectUsesConfiguredHostname(t *testing.T) {
 // configured, the middleware still works (using the request Host) — preserving
 // the legacy behaviour for users who set up TLS but don't set Hostname.
 func TestHTTPSRedirectFallsBackToHostHeader(t *testing.T) {
-	t.Parallel()
-
 	cfg := &TlsConfig{
 		HttpConfig: &HttpConfig{
 			Hostname: "",
@@ -132,8 +126,6 @@ func TestHTTPSRedirectFallsBackToHostHeader(t *testing.T) {
 // TestHTTPSRedirectSkipsInsecurePaths verifies health-check paths bypass the
 // redirect so K8s liveness/readiness probes can still hit HTTP.
 func TestHTTPSRedirectSkipsInsecurePaths(t *testing.T) {
-	t.Parallel()
-
 	cfg := &TlsConfig{HttpConfig: &HttpConfig{Hostname: "api.example.com", Port: 443}}
 	called := false
 	mw := HTTPSRedirectWithConfig(cfg)
@@ -165,8 +157,6 @@ func TestHTTPSRedirectSkipsInsecurePaths(t *testing.T) {
 }
 
 func TestCorsMiddlewareDisabledByDefault(t *testing.T) {
-	t.Parallel()
-
 	cfg := DefaultCorsConfig()
 	if got := CorsMiddleware(cfg); got != nil {
 		t.Fatalf("expected CorsMiddleware to return nil for default config")
@@ -174,8 +164,6 @@ func TestCorsMiddlewareDisabledByDefault(t *testing.T) {
 }
 
 func TestCorsMiddlewareEnabledWithOrigins(t *testing.T) {
-	t.Parallel()
-
 	cfg := &CorsConfig{
 		AllowOrigins: []string{"https://app.example.com"},
 	}

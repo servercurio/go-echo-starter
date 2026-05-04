@@ -5,8 +5,6 @@ import (
 )
 
 func TestValidateProxyFlags_MultipleEnabled(t *testing.T) {
-	t.Parallel()
-
 	cfg := DefaultConfig()
 	cfg.Proxy.UseDirectIP = true
 	cfg.Proxy.UseXFFHeader = true
@@ -18,8 +16,6 @@ func TestValidateProxyFlags_MultipleEnabled(t *testing.T) {
 }
 
 func TestValidateProxyFlags_OneEnabled(t *testing.T) {
-	t.Parallel()
-
 	cfg := DefaultConfig()
 	cfg.Proxy.UseDirectIP = false
 	cfg.Proxy.UseXFFHeader = true
@@ -32,8 +28,6 @@ func TestValidateProxyFlags_OneEnabled(t *testing.T) {
 }
 
 func TestResolveProxyTrustOptions_MixedCIDR(t *testing.T) {
-	t.Parallel()
-
 	cfg := DefaultConfig()
 	cfg.Proxy.TrustedIPRanges = []string{
 		"10.0.0.0/8",   // valid
@@ -53,8 +47,6 @@ func TestResolveProxyTrustOptions_MixedCIDR(t *testing.T) {
 }
 
 func TestResolveProxyTrustOptions_NilProxy(t *testing.T) {
-	t.Parallel()
-
 	app := &Application{config: &Config{}}
 	opts := app.resolveProxyTrustOptions()
 	if len(opts) != 0 {

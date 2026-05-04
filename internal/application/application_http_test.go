@@ -10,8 +10,6 @@ import (
 )
 
 func TestConfigureHttpServer_BodyLimitRejects(t *testing.T) {
-	t.Parallel()
-
 	cfg := DefaultConfig()
 	cfg.Server.Http.MaxBodySize = "1KB"
 
@@ -39,8 +37,6 @@ func TestConfigureHttpServer_BodyLimitRejects(t *testing.T) {
 }
 
 func TestConfigureHttpServer_RejectsBadBodySize(t *testing.T) {
-	t.Parallel()
-
 	cfg := DefaultConfig()
 	cfg.Server.Http.MaxBodySize = "not-a-size"
 

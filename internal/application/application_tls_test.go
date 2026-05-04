@@ -20,8 +20,6 @@ func newTestApp(hostname string) *Application {
 }
 
 func TestGenerateTlsCertificateProducesValidX509(t *testing.T) {
-	t.Parallel()
-
 	app := newTestApp("api.example.com")
 	imc, err := app.generateTlsCertificate()
 	if err != nil {
@@ -64,8 +62,6 @@ func TestGenerateTlsCertificateProducesValidX509(t *testing.T) {
 // TestGenerateTlsCertificateSerialIsRandom verifies the PR 2 fix: each call
 // produces a unique 128-bit serial, not the constant `1` we had before.
 func TestGenerateTlsCertificateSerialIsRandom(t *testing.T) {
-	t.Parallel()
-
 	app := newTestApp("localhost")
 
 	a, err := app.generateTlsCertificate()
