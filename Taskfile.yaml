@@ -16,6 +16,11 @@ env:
   APP_HTTP_ACCESS_LOG_LEVEL: info
   APP_HTTP_ACCESS_LOG_PRETTY_PRINT: true
   APP_SERVER_HTTPS_ENABLED: true
+  # Local dev binds to loopback so `task run:daemon` doesn't expose the
+  # listener on every interface. The compiled binary still defaults to "" /
+  # all-interfaces — this override only applies when running via Taskfile.
+  APP_SERVER_HTTP_BIND_ADDRESS: 127.0.0.1
+  APP_SERVER_HTTPS_BIND_ADDRESS: 127.0.0.1
   APP_SERVER_HTTP_PORT: 80
   APP_SERVER_HTTPS_PORT: 443
   APP_SERVER_HTTPS_USE_ACME_ISSUER: false

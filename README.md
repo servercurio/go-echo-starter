@@ -59,7 +59,6 @@ internal/
     migrations/sql/ # Embedded *.sql migration files
     orm/            # Bun ORM singleton + (your) domain models
   version/          # Build-time version metadata
-pkg/                # (reserved for future public packages)
 .github/
   workflows/        # CI: PR Formatting, PR Checks, CodeQL Scanning, Deploy Release, reusable callees
     docs/           # Workflow naming-standards reference
