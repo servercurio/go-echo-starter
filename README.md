@@ -88,10 +88,22 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_HTTP_ACCESS_LOG_LEVEL`           | `error`      | Access log level                            |
 | `APP_HTTP_ACCESS_LOG_PRETTY_PRINT`    | `false`      | Color console output                        |
 | `APP_SERVER_HTTP_PORT`                | `8080`       | HTTP listener port                          |
+| `APP_SERVER_HTTP_SHUTDOWN_TIMEOUT`    | `10s`        | Graceful shutdown deadline (HTTP)           |
+| `APP_SERVER_HTTP_READ_TIMEOUT`        | `30s`        | Max time to read entire request (HTTP)      |
+| `APP_SERVER_HTTP_READ_HEADER_TIMEOUT` | `5s`         | Max time to read request headers (HTTP)     |
+| `APP_SERVER_HTTP_WRITE_TIMEOUT`       | `30s`        | Max time to write response (HTTP)           |
+| `APP_SERVER_HTTP_IDLE_TIMEOUT`        | `120s`       | Keep-alive idle timeout (HTTP)              |
+| `APP_SERVER_HTTP_MAX_BODY_SIZE`       | `1MB`        | Max request body size; oversize → 413 (HTTP). Accepts `B`/`KB`/`MB`/`GB` suffixes or bare bytes. |
 | `APP_SERVER_HTTPS_ENABLED`            | `false`      | Enable the TLS server                       |
 | `APP_SERVER_HTTPS_PORT`               | `8443`       | HTTPS listener port                         |
 | `APP_SERVER_HTTPS_HOSTNAME`           | —            | Hostname presented in self-signed/ACME cert |
 | `APP_SERVER_HTTPS_USE_ACME_ISSUER`    | `false`      | Use Let's Encrypt instead of static certs   |
+| `APP_SERVER_HTTPS_SHUTDOWN_TIMEOUT`   | `10s`        | Graceful shutdown deadline (HTTPS)          |
+| `APP_SERVER_HTTPS_READ_TIMEOUT`       | `30s`        | Max time to read entire request (HTTPS)     |
+| `APP_SERVER_HTTPS_READ_HEADER_TIMEOUT`| `5s`         | Max time to read request headers (HTTPS)    |
+| `APP_SERVER_HTTPS_WRITE_TIMEOUT`      | `30s`        | Max time to write response (HTTPS)          |
+| `APP_SERVER_HTTPS_IDLE_TIMEOUT`       | `120s`       | Keep-alive idle timeout (HTTPS)             |
+| `APP_SERVER_HTTPS_MAX_BODY_SIZE`      | `1MB`        | Max request body size; oversize → 413 (HTTPS) |
 | `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
 | `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
 | `APP_DATABASE_MAX_OPEN_CONNS`         | `25`         | Max open connections in the pool. Zero/negative = unlimited.                                          |

@@ -9,10 +9,15 @@ import (
 )
 
 type HttpConfig struct {
-	Hostname        string        `yaml:"hostname" json:"hostname"`
-	BindAddress     string        `yaml:"bindAddress" json:"bindAddress"`
-	Port            uint16        `yaml:"port" json:"port"`
-	ShutdownTimeout time.Duration `yaml:"shutdownTimeout" json:"shutdownTimeout"`
+	Hostname          string        `yaml:"hostname" json:"hostname"`
+	BindAddress       string        `yaml:"bindAddress" json:"bindAddress"`
+	Port              uint16        `yaml:"port" json:"port"`
+	ShutdownTimeout   time.Duration `yaml:"shutdownTimeout" json:"shutdownTimeout"`
+	ReadTimeout       time.Duration `yaml:"readTimeout" json:"readTimeout"`
+	ReadHeaderTimeout time.Duration `yaml:"readHeaderTimeout" json:"readHeaderTimeout"`
+	WriteTimeout      time.Duration `yaml:"writeTimeout" json:"writeTimeout"`
+	IdleTimeout       time.Duration `yaml:"idleTimeout" json:"idleTimeout"`
+	MaxBodySize       string        `yaml:"maxBodySize" json:"maxBodySize"`
 }
 
 func (h *HttpConfig) MarshalZerologObject(e *zerolog.Event) {
@@ -26,6 +31,11 @@ func (h *HttpConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("bindAddress", ba)
 	e.Uint16("port", h.Port)
 	e.Str("shutdownTimeout", h.ShutdownTimeout.String())
+	e.Str("readTimeout", h.ReadTimeout.String())
+	e.Str("readHeaderTimeout", h.ReadHeaderTimeout.String())
+	e.Str("writeTimeout", h.WriteTimeout.String())
+	e.Str("idleTimeout", h.IdleTimeout.String())
+	e.Str("maxBodySize", h.MaxBodySize)
 }
 
 func (h *HttpConfig) FromEnv(prefix string) {
@@ -33,6 +43,11 @@ func (h *HttpConfig) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "bind_address", &h.BindAddress)
 	env.SetUint16Value(prefix, "port", &h.Port)
 	env.SetDurationValue(prefix, "shutdown_timeout", &h.ShutdownTimeout)
+	env.SetDurationValue(prefix, "read_timeout", &h.ReadTimeout)
+	env.SetDurationValue(prefix, "read_header_timeout", &h.ReadHeaderTimeout)
+	env.SetDurationValue(prefix, "write_timeout", &h.WriteTimeout)
+	env.SetDurationValue(prefix, "idle_timeout", &h.IdleTimeout)
+	env.SetStringValue(prefix, "max_body_size", &h.MaxBodySize)
 }
 
 type TlsConfig struct {
@@ -83,18 +98,28 @@ func (t *TlsConfig) FromEnv(prefix string) {
 
 func DefaultHttpConfig() *HttpConfig {
 	return &HttpConfig{
-		BindAddress:     "",
-		Port:            8080,
-		ShutdownTimeout: 10 * time.Second,
+		BindAddress:       "",
+		Port:              8080,
+		ShutdownTimeout:   10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxBodySize:       "1MB",
 	}
 }
 
 func DefaultTlsConfig() *TlsConfig {
 	return &TlsConfig{
 		HttpConfig: &HttpConfig{
-			BindAddress:     "",
-			Port:            8443,
-			ShutdownTimeout: 10 * time.Second,
+			BindAddress:       "",
+			Port:              8443,
+			ShutdownTimeout:   10 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			ReadHeaderTimeout: 5 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       120 * time.Second,
+			MaxBodySize:       "1MB",
 		},
 		Enabled:          false,
 		Certificate:      "",
