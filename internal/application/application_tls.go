@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -100,6 +101,19 @@ func (app *Application) generateTlsCertificate() (imc *InMemoryCertificate, err 
 		return nil, wErr
 	}
 
+	// 128-bit random serial per RFC 5280 §4.1.2.2; avoids reusing the same
+	// serial across daemon restarts, which would alias entries in client
+	// certificate caches.
+	serialMax := new(big.Int).Lsh(big.NewInt(1), 128)
+	serial, err := rand.Int(rand.Reader, serialMax)
+	if err != nil {
+		wErr := errorx.ExternalError.Wrap(err, "failed to generate certificate serial number")
+		logging.Daemon.Error().
+			Err(wErr).
+			Msg("ephemeral tls - failed to generate certificate serial number")
+		return nil, wErr
+	}
+
 	cn := "localhost"
 	if app.config.Server.Https.Hostname != "" {
 		cn = app.config.Server.Https.Hostname
@@ -120,7 +134,7 @@ func (app *Application) generateTlsCertificate() (imc *InMemoryCertificate, err 
 	}
 
 	template := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
+		SerialNumber: serial,
 		Subject:      pkix.Name{CommonName: cn},
 		NotBefore:    time.Now().UTC().Add(-24 * time.Hour),
 		NotAfter:     time.Now().UTC().Add(365 * 24 * time.Hour),
@@ -177,7 +191,7 @@ func (app *Application) configureAutoTlsManager() error {
 		}
 	}
 
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(cacheDir, 0700); err != nil {
 		var wErr error
 		if os.IsPermission(err) {
 			wErr = ce.FileAccessDenied.Wrap(err, "permission denied: %s", cacheDir)
@@ -192,6 +206,16 @@ func (app *Application) configureAutoTlsManager() error {
 			Str("path", cacheDir).
 			Msg("auto tls - failed to create certificate cache directory")
 		return wErr
+	}
+
+	// MkdirAll honours the mode only when creating; if cacheDir already
+	// existed with looser permissions (e.g. from a pre-fix daemon version),
+	// tighten it now. The cache holds private keys and ACME account state.
+	if err := os.Chmod(cacheDir, 0700); err != nil {
+		logging.Daemon.Warn().
+			Err(err).
+			Str("path", cacheDir).
+			Msg("auto tls - could not tighten certificate cache directory permissions")
 	}
 
 	app.tlsServer.Logger = nil
@@ -222,6 +246,13 @@ func (app *Application) startTlsServer(ctx context.Context) {
 		HideBanner:      true,
 		Address:         address,
 		GracefulTimeout: tlsCfg.ShutdownTimeout,
+		// Static-cert and self-signed paths use this TLSConfig; ACME path
+		// overrides it below with autocert.Manager.TLSConfig() (which also
+		// pins MinVersion to TLS 1.2 internally).
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			NextProtos: []string{"h2", "http/1.1"},
+		},
 		BeforeServeFunc: func(s *http.Server) error {
 			s.ReadTimeout = tlsCfg.ReadTimeout
 			s.ReadHeaderTimeout = tlsCfg.ReadHeaderTimeout
@@ -244,6 +275,9 @@ func (app *Application) startTlsServer(ctx context.Context) {
 				HostPolicy: hp,
 			}
 
+			// autocert.TLSConfig() returns a config with GetCertificate set
+			// and MinVersion: TLS 1.2 already; replacing our explicit config
+			// with it is safe.
 			sc.TLSConfig = acm.TLSConfig()
 
 			if err := sc.Start(ctx, app.tlsServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
