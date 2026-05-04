@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.svg" alt="Server Curio — Project Templates" width="600">
+</p>
+
 # go-echo-starter
 
 A production-ready HTTP server starter template built on [Echo v5](https://github.com/labstack/echo). It provides a modular foundation for Go microservices with structured logging, flexible TLS, and reverse-proxy awareness — without imposing choices about persistence, auth, or business logic.

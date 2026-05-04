@@ -1,7 +1,6 @@
 package openapi
 
 import (
-	_ "embed"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,9 +13,6 @@ import (
 
 	echoSwagger "github.com/swaggo/echo-swagger/v2"
 )
-
-//go:embed assets/logo.svg
-var swaggerLogoSVG []byte
 
 // swaggerIndexTemplate is a hand-rolled Swagger UI bootstrap. It uses
 // StandaloneLayout so the topbar is rendered (we want a branded header),
@@ -159,7 +155,7 @@ func SwaggerModule(opts SwaggerOptions) router.Module {
 					endpoint.New("swagger-logo-get", "swagger-logo-get",
 						endpoint.WithGetMethod(),
 						endpoint.WithHandler(func(c *echo.Context) error {
-							return c.Blob(http.StatusOK, "image/svg+xml", swaggerLogoSVG)
+							return c.Blob(http.StatusOK, "image/svg+xml", logoSVG)
 						}),
 					),
 				),
