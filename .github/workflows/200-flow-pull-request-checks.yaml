@@ -37,3 +37,11 @@ jobs:
       custom-job-label: Standard
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+  vulnerability-check:
+    name: "Vulnerability Check"
+    uses: ./.github/workflows/800-call-vulncheck.yaml
+    needs:
+      - code-compiles
+    with:
+      custom-job-label: Standard
