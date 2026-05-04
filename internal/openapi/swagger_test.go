@@ -115,6 +115,52 @@ func TestSwaggerModule_RenderedIndexUsesConfiguredSpecURLOnly(t *testing.T) {
 		"echo-swagger's default doc.yaml must also be cleared")
 }
 
+// TestSwaggerModule_IndexHidesPickerKeepsBrandedTopbar pins the topbar
+// styling contract. We keep StandaloneLayout (so the topbar renders), but
+// hide the spec URL/picker controls (`.download-url-wrapper`) via CSS and
+// swap the default Swagger logo for the Server Curio brandmark served at
+// the sibling /logo.svg route. Three things must hold:
+//
+//   - the topbar is still rendered (StandaloneLayout in the bootstrap),
+//   - the picker block is suppressed via CSS, and
+//   - the brandmark is referenced.
+func TestSwaggerModule_IndexHidesPickerKeepsBrandedTopbar(t *testing.T) {
+	assert := asrt.New(t)
+
+	e := attachSwagger(t)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil))
+	assert.Equal(http.StatusOK, rec.Code)
+
+	body := rec.Body.String()
+	assert.Contains(body, `layout: "StandaloneLayout"`,
+		"index.html must render with StandaloneLayout so the branded topbar stays visible")
+	assert.Contains(body, ".download-url-wrapper { display: none",
+		"the spec URL/picker block must be hidden via CSS")
+	assert.Contains(body, `url("./logo.svg")`,
+		"the topbar must reference the Server Curio brandmark")
+	assert.Contains(body, `url: "/openapi.yaml"`,
+		"index.html must still pin the spec URL")
+}
+
+// TestSwaggerModule_LogoServed verifies the brandmark referenced by the
+// rendered topbar CSS is actually reachable at the sibling route. A 404
+// here would leave the topbar with a blank gap instead of the logo.
+func TestSwaggerModule_LogoServed(t *testing.T) {
+	assert := asrt.New(t)
+
+	e := attachSwagger(t)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/swagger/logo.svg", nil))
+
+	assert.Equal(http.StatusOK, rec.Code)
+	assert.Equal("image/svg+xml", rec.Header().Get(echo.HeaderContentType))
+	assert.Contains(rec.Body.String(), "<svg",
+		"response must be an SVG document, not the echo-swagger asset handler's fallback")
+}
+
 // TestSwaggerModule_RespectsCustomPath validates that callers can mount
 // Swagger UI under any prefix, not just /swagger — and that the redirect
 // target tracks the custom prefix.
