@@ -8,12 +8,14 @@
 package database
 
 import (
+	"time"
+
 	"github.com/rs/zerolog"
 	"github.com/servercurio/go-echo-starter/internal/env"
 	"github.com/servercurio/go-echo-starter/internal/obfusicate"
 )
 
-// Config holds the database connection parameters.
+// Config holds the database connection parameters and pool sizing.
 type Config struct {
 	// Driver is the database/sql driver name to register (e.g. "pgx").
 	Driver string `yaml:"driver" json:"driver"`
@@ -22,6 +24,24 @@ type Config struct {
 	// the database subsystem entirely: Connect/Migrate become no-ops and
 	// readiness checks skip the database probe.
 	DSN string `yaml:"dsn" json:"dsn"`
+
+	// MaxOpenConns is the maximum number of open connections to the
+	// database, including those in use and idle. Zero or negative means
+	// unlimited (matches database/sql default). Defaults to 25.
+	MaxOpenConns int `yaml:"maxOpenConns" json:"maxOpenConns"`
+
+	// MaxIdleConns is the maximum number of idle connections held in the
+	// pool. database/sql default is 2. Defaults to 5.
+	MaxIdleConns int `yaml:"maxIdleConns" json:"maxIdleConns"`
+
+	// ConnMaxLifetime is how long a connection may live before being
+	// recycled. Useful for rotating credentials or working around proxies
+	// that close idle connections. Zero means no maximum. Defaults to 1h.
+	ConnMaxLifetime time.Duration `yaml:"connMaxLifetime" json:"connMaxLifetime"`
+
+	// ConnMaxIdleTime is how long an idle connection may sit in the pool
+	// before being closed. Zero means no maximum. Defaults to 5m.
+	ConnMaxIdleTime time.Duration `yaml:"connMaxIdleTime" json:"connMaxIdleTime"`
 }
 
 // Enabled reports whether the database subsystem should be initialised. Returns
@@ -35,6 +55,10 @@ func (c *Config) Enabled() bool {
 func (c *Config) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "driver", &c.Driver)
 	env.SetStringValue(prefix, "dsn", &c.DSN)
+	env.SetIntValue(prefix, "max_open_conns", &c.MaxOpenConns)
+	env.SetIntValue(prefix, "max_idle_conns", &c.MaxIdleConns)
+	env.SetDurationValue(prefix, "conn_max_lifetime", &c.ConnMaxLifetime)
+	env.SetDurationValue(prefix, "conn_max_idle_time", &c.ConnMaxIdleTime)
 }
 
 // MarshalZerologObject writes the database configuration to a zerolog event.
@@ -42,6 +66,10 @@ func (c *Config) FromEnv(prefix string) {
 func (c *Config) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("driver", c.Driver).
 		Str("dsn", obfusicate.ConcealUriCredential(c.DSN)).
+		Int("maxOpenConns", c.MaxOpenConns).
+		Int("maxIdleConns", c.MaxIdleConns).
+		Str("connMaxLifetime", c.ConnMaxLifetime.String()).
+		Str("connMaxIdleTime", c.ConnMaxIdleTime.String()).
 		Bool("enabled", c.Enabled())
 }
 
@@ -49,7 +77,11 @@ func (c *Config) MarshalZerologObject(e *zerolog.Event) {
 // or env var) to enable the database subsystem.
 func DefaultConfig() *Config {
 	return &Config{
-		Driver: "pgx",
-		DSN:    "",
+		Driver:          "pgx",
+		DSN:             "",
+		MaxOpenConns:    25,
+		MaxIdleConns:    5,
+		ConnMaxLifetime: 1 * time.Hour,
+		ConnMaxIdleTime: 5 * time.Minute,
 	}
 }
