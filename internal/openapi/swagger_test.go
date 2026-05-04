@@ -10,6 +10,7 @@ import (
 	asrt "github.com/stretchr/testify/assert"
 
 	"github.com/servercurio/go-echo-starter/internal/openapi"
+	"github.com/servercurio/go-echo-starter/internal/version"
 )
 
 // attachSwagger wires SwaggerModule into a fresh Echo so each test case can
@@ -159,6 +160,44 @@ func TestSwaggerModule_LogoServed(t *testing.T) {
 	assert.Equal("image/svg+xml", rec.Header().Get(echo.HeaderContentType))
 	assert.Contains(rec.Body.String(), "<svg",
 		"response must be an SVG document, not the echo-swagger asset handler's fallback")
+}
+
+// TestSwaggerModule_IndexRendersBuildAndLicenseFooter pins the footer
+// contract: the rendered index must surface the build's version, the
+// short commit prefix (first 7 chars of the embedded commit hash), and
+// the project copyright/license attribution. These ride along with the
+// rendered HTML so consumers reading the spec UI can see exactly which
+// build of the daemon is serving them.
+func TestSwaggerModule_IndexRendersBuildAndLicenseFooter(t *testing.T) {
+	assert := asrt.New(t)
+
+	e := attachSwagger(t)
+
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil))
+	assert.Equal(http.StatusOK, rec.Code)
+
+	body := rec.Body.String()
+
+	assert.Contains(body, `class="swagger-footer"`,
+		"rendered index must include the footer container")
+	assert.Contains(body, version.Number(),
+		"footer must surface the embedded version number")
+
+	commit := version.Commit()
+	if len(commit) >= 7 {
+		assert.Contains(body, commit[:7],
+			"footer must surface the 7-char commit prefix")
+		assert.NotContains(body, commit,
+			"footer must not leak the full commit hash — only the short prefix")
+	}
+
+	assert.Contains(body, "Server Curio",
+		"footer must carry the project copyright attribution")
+	assert.Contains(body, "Apache License, Version 2.0",
+		"footer must declare the license")
+	assert.Contains(body, "https://www.apache.org/licenses/LICENSE-2.0",
+		"footer must link to the license text")
 }
 
 // TestSwaggerModule_RespectsCustomPath validates that callers can mount
