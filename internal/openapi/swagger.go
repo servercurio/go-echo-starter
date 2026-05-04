@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/servercurio/go-echo-starter/internal/api/std/endpoint"
 	"github.com/servercurio/go-echo-starter/internal/api/std/module"
 	"github.com/servercurio/go-echo-starter/internal/api/std/route"
 	"github.com/servercurio/go-echo-starter/internal/router"
+	"github.com/servercurio/go-echo-starter/internal/version"
 
 	echoSwagger "github.com/swaggo/echo-swagger/v2"
 )
@@ -48,16 +50,39 @@ const swaggerIndexTemplate = `<!DOCTYPE html>
       background: url("./logo.svg") no-repeat left center;
       background-size: contain;
     }
+    .swagger-footer {
+      max-width: 1460px;
+      margin: 24px auto 0;
+      padding: 16px 24px 24px;
+      border-top: 1px solid #e6e6e6;
+      color: #707070;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .swagger-footer a { color: #707070; text-decoration: none; }
+    .swagger-footer a:hover { text-decoration: underline; }
+    .swagger-footer code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f0f0f0;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
 <div id="swagger-ui"></div>
+<footer class="swagger-footer">
+  <div>Version <code>%[2]s</code> · Commit <code>%[3]s</code></div>
+  <div>Copyright © %[4]d Server Curio · Licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License, Version 2.0</a></div>
+</footer>
 <script src="./swagger-ui-bundle.js"></script>
 <script src="./swagger-ui-standalone-preset.js"></script>
 <script>
 window.onload = function() {
   SwaggerUIBundle({
-    url: %q,
+    url: %[1]q,
     dom_id: "#swagger-ui",
     deepLinking: true,
     presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
@@ -126,7 +151,14 @@ func SwaggerModule(opts SwaggerOptions) router.Module {
 		c.URLs = []string{specURL}
 	})
 
-	indexBody := fmt.Sprintf(swaggerIndexTemplate, specURL)
+	commit := version.Commit()
+	commitPrefix := "unknown"
+	if len(commit) >= 7 {
+		commitPrefix = commit[:7]
+	} else if commit != "" {
+		commitPrefix = commit
+	}
+	indexBody := fmt.Sprintf(swaggerIndexTemplate, specURL, version.Number(), commitPrefix, time.Now().Year())
 
 	return module.New("swagger", "swagger", "",
 		module.WithRoutes(
