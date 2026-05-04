@@ -1,8 +1,8 @@
-# NOTE: pin to a digest for supply-chain integrity. Replace the tag below
-# with the form `ubuntu:noble-20250127@sha256:<digest>` after running:
-#   docker buildx imagetools inspect ubuntu:noble-20250127
-# Dependabot's docker ecosystem (.github/dependabot.yml) keeps this updated.
-FROM ubuntu:noble-20250127
+# Pinned to ubuntu:noble-20260410 by digest for supply-chain integrity.
+# Multi-arch manifest list covers linux/amd64 and linux/arm64 (the build
+# matrix's two targets). Dependabot's docker ecosystem opens PRs that bump
+# both the tag and the digest together.
+FROM ubuntu:noble-20260410@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
 
 COPY ./bin/ /tmp/appsvr/
 
