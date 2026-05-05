@@ -43,3 +43,11 @@ jobs:
       - code-compiles
     with:
       custom-job-label: Standard
+
+  openapi-drift:
+    name: "OpenAPI Drift"
+    uses: ./.github/workflows/800-call-openapi-drift.yaml
+    needs:
+      - code-compiles
+    with:
+      custom-job-label: Standard

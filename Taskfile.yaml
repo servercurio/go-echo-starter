@@ -101,6 +101,17 @@ tasks:
       - cmd: go generate ./...
         silent: true
 
+  openapi:gen:
+    desc: "Render the OpenAPI spec to docs/openapi.yaml (run after route changes)"
+    cmds:
+      - go run ./cmd/openapi-gen -out docs/openapi.yaml
+
+  openapi:check:
+    desc: "Verify docs/openapi.yaml matches the spec produced from current code"
+    cmds:
+      - go run ./cmd/openapi-gen -out /tmp/openapi.generated.yaml
+      - diff -u docs/openapi.yaml /tmp/openapi.generated.yaml
+
   hash:
     desc: "Generate per-binary SHA-256 hashes (writes bin/<binary>.sha256 per binary)"
     dir: bin
