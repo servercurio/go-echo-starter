@@ -7,6 +7,7 @@ type ServerConfig struct {
 	Https    *TlsConfig      `yaml:"https" json:"https"`
 	Cors     *CorsConfig     `yaml:"cors" json:"cors"`
 	Security *SecurityConfig `yaml:"security" json:"security"`
+	Csrf     *CsrfConfig     `yaml:"csrf" json:"csrf"`
 }
 
 func (c *ServerConfig) FromEnv(prefix string) {
@@ -14,6 +15,7 @@ func (c *ServerConfig) FromEnv(prefix string) {
 	c.Https.FromEnv(env.AddPrefix(prefix, "https"))
 	c.Cors.FromEnv(env.AddPrefix(prefix, "cors"))
 	c.Security.FromEnv(env.AddPrefix(prefix, "security"))
+	c.Csrf.FromEnv(env.AddPrefix(prefix, "csrf"))
 }
 
 func DefaultServerConfig() *ServerConfig {
@@ -22,5 +24,6 @@ func DefaultServerConfig() *ServerConfig {
 		Https:    DefaultTlsConfig(),
 		Cors:     DefaultCorsConfig(),
 		Security: DefaultSecurityConfig(),
+		Csrf:     DefaultCsrfConfig(),
 	}
 }
