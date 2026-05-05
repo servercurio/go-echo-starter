@@ -71,10 +71,7 @@ type TlsConfig struct {
 }
 
 func (t *TlsConfig) MarshalZerologObject(e *zerolog.Event) {
-	autoCertIssuance := false
-	if strings.TrimSpace(t.Certificate) == "" || strings.TrimSpace(t.Key) == "" {
-		autoCertIssuance = true
-	}
+	autoCertIssuance := strings.TrimSpace(t.Certificate) == "" || strings.TrimSpace(t.Key) == ""
 
 	e.EmbedObject(t.HttpConfig).
 		Bool("enabled", t.Enabled).

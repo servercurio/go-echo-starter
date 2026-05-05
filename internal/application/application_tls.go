@@ -83,10 +83,9 @@ func (app *Application) configureTlsServer() error {
 			var err error
 			if app.certificate, err = app.generateTlsCertificate(); err != nil {
 				return err
-			} else {
-				logging.Daemon.Info().
-					Msg("ephemeral tls - self-signed certificate generated")
 			}
+			logging.Daemon.Info().
+				Msg("ephemeral tls - self-signed certificate generated")
 		}
 	}
 
@@ -195,13 +194,14 @@ func (app *Application) configureAutoTlsManager() error {
 		}
 	}
 
-	if err := os.MkdirAll(cacheDir, 0700); err != nil {
+	if err := os.MkdirAll(cacheDir, 0700); err != nil { //nolint:gosec // 0700 is required: directories need execute bit to traverse, and the cache holds private keys we want owner-only
 		var wErr error
-		if os.IsPermission(err) {
+		switch {
+		case os.IsPermission(err):
 			wErr = ce.FileAccessDenied.Wrap(err, "permission denied: %s", cacheDir)
-		} else if os.IsExist(err) {
+		case os.IsExist(err):
 			wErr = ce.InvalidFilePath.Wrap(err, "file already exists and is a regular file: %s", cacheDir)
-		} else {
+		default:
 			wErr = errorx.ExternalError.Wrap(err, "failed to create directory: %s", cacheDir)
 		}
 
@@ -215,7 +215,7 @@ func (app *Application) configureAutoTlsManager() error {
 	// MkdirAll honours the mode only when creating; if cacheDir already
 	// existed with looser permissions (e.g. from a pre-fix daemon version),
 	// tighten it now. The cache holds private keys and ACME account state.
-	if err := os.Chmod(cacheDir, 0700); err != nil {
+	if err := os.Chmod(cacheDir, 0700); err != nil { //nolint:gosec // 0700 is required: directories need execute bit to traverse, and the cache holds private keys we want owner-only
 		logging.Daemon.Warn().
 			Err(err).
 			Str("path", cacheDir).
@@ -229,6 +229,33 @@ func (app *Application) configureAutoTlsManager() error {
 		Msg("auto tls - automatic tls support configured")
 
 	return nil
+}
+
+// hardenedTLSConfig returns the *tls.Config used for the static-cert and
+// self-signed paths. The ACME path uses autocert.Manager.TLSConfig() which
+// already produces a hardened config.
+//
+// CipherSuites only configures TLS 1.2 — Go selects TLS 1.3 ciphers
+// automatically and ignores this slice for 1.3 connections. The set below
+// mirrors Mozilla "intermediate" minus AES-CBC (Go drops CBC suites in
+// modern releases regardless).
+func hardenedTLSConfig() *tls.Config {
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		NextProtos: []string{"h2", "http/1.1"},
+		CurvePreferences: []tls.CurveID{
+			tls.X25519,
+			tls.CurveP256,
+		},
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		},
+	}
 }
 
 func (app *Application) startTlsServer(ctx context.Context) {
@@ -252,11 +279,8 @@ func (app *Application) startTlsServer(ctx context.Context) {
 		GracefulTimeout: tlsCfg.ShutdownTimeout,
 		// Static-cert and self-signed paths use this TLSConfig; ACME path
 		// overrides it below with autocert.Manager.TLSConfig() (which also
-		// pins MinVersion to TLS 1.2 internally).
-		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS12,
-			NextProtos: []string{"h2", "http/1.1"},
-		},
+		// pins MinVersion to TLS 1.2 and a hardened cipher set internally).
+		TLSConfig: hardenedTLSConfig(),
 		BeforeServeFunc: func(s *http.Server) error {
 			s.ReadTimeout = tlsCfg.ReadTimeout
 			s.ReadHeaderTimeout = tlsCfg.ReadHeaderTimeout

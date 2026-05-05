@@ -2,13 +2,14 @@ package logging
 
 import (
 	"fmt"
-	"github.com/rs/zerolog"
 	"io"
 	"os"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 var Daemon zerolog.Logger
@@ -59,11 +60,11 @@ func newLogger(c *LoggerConfig, writer io.Writer) zerolog.Logger {
 func formatLevel(i interface{}) string {
 	var l zerolog.Level
 
-	switch i.(type) {
+	switch v := i.(type) {
 	case zerolog.Level:
-		l = i.(zerolog.Level)
+		l = v
 	case string:
-		l = parseLevel(i.(string))
+		l = parseLevel(v)
 	}
 
 	ul := strings.ToUpper(l.String())
@@ -71,7 +72,7 @@ func formatLevel(i interface{}) string {
 		return colorize(ul, c, false)
 	}
 
-	return fmt.Sprintf("%s", ul)
+	return ul
 }
 
 func formatCaller(pc uintptr, file string, line int) string {
