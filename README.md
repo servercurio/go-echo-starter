@@ -134,6 +134,11 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_SERVER_CORS_ALLOW_HEADERS`       | —            | Comma-separated request-header allowlist                                                                  |
 | `APP_SERVER_CORS_ALLOW_CREDENTIALS`   | `false`      | Allow cookies/auth headers in cross-origin requests. Cannot be combined with wildcard origins.            |
 | `APP_SERVER_CORS_MAX_AGE`             | `0`          | Preflight cache lifetime in seconds                                                                       |
+| `APP_SERVER_SECURITY_HSTS_MAX_AGE`            | `31536000`   | `Strict-Transport-Security` max-age (seconds). `0` suppresses the header. Emitted only on TLS requests (or `X-Forwarded-Proto: https`). |
+| `APP_SERVER_SECURITY_HSTS_EXCLUDE_SUBDOMAINS` | `false`      | When `true`, drops the `includeSubDomains` directive from HSTS.                                                                         |
+| `APP_SERVER_SECURITY_HSTS_PRELOAD_ENABLED`    | `false`      | When `true`, adds the `preload` directive. Preload submission is one-way — opt in deliberately.                                          |
+| `APP_SERVER_SECURITY_CONTENT_SECURITY_POLICY` | —            | `Content-Security-Policy` header value (sent verbatim when non-empty). Empty by default to avoid breaking the bundled Swagger UI.        |
+| `APP_SERVER_SECURITY_REFERRER_POLICY`         | —            | `Referrer-Policy` header value (sent verbatim when non-empty). Common values: `no-referrer`, `strict-origin-when-cross-origin`.          |
 | `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
 | `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
 | `APP_DATABASE_MAX_OPEN_CONNS`         | `25`         | Max open connections in the pool. Zero/negative = unlimited.                                          |

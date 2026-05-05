@@ -62,6 +62,16 @@ func NotifyCorsConfig(cfg *CorsConfig) {
 		Msg("cors configuration")
 }
 
+func NotifySecurityConfig(cfg *SecurityConfig) {
+	if cfg == nil {
+		return
+	}
+
+	logging.Daemon.Info().
+		EmbedObject(cfg).
+		Msg("security headers configuration")
+}
+
 func NotifyProxySupportConfig(cfg *ProxyConfig) {
 	if cfg == nil {
 		return

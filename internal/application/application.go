@@ -53,20 +53,9 @@ func NewApplication(cfg *Config) *Application {
 		EnvVariablePrefix: defaultEnvPrefix,
 		config:            cfg,
 		healthRegistry:    health.NewRegistry(),
-		middleware: []echo.MiddlewareFunc{
-			mw.Recover(),
-			mw.RequestID(),
-			mw.GzipWithConfig(mw.GzipConfig{
-				Level:     5,
-				MinLength: 2 * 1024,
-			}),
-			logging.EchoMiddleware(),
-			//mw.CSRF(),
-			mw.Secure(),
-		},
-		httpServer: echo.New(),
-		tlsServer:  echo.New(),
-		modules:    make(map[string]router.Module),
+		httpServer:        echo.New(),
+		tlsServer:         echo.New(),
+		modules:           make(map[string]router.Module),
 	}
 
 	// Initialize the logging configuration early to avoid missing any critical logs
@@ -74,6 +63,41 @@ func NewApplication(cfg *Config) *Application {
 	logging.NotifyDaemonStartup(app.Name, loggingCfg)
 
 	return app
+}
+
+// buildMiddleware assembles the global middleware stack from the loaded
+// configuration. Called from Initialize() once Configure() has populated
+// app.config — must run before configureHttpServer / configureTlsServer
+// so the slice is ready when those methods call e.Use(app.middleware...).
+//
+// Lifted out of NewApplication because the Secure middleware needs the
+// SecurityConfig values (HSTS, CSP, Referrer-Policy), which aren't
+// available until config files + env vars have been resolved.
+func (app *Application) buildMiddleware() {
+	sec := app.config.Server.Security
+	if sec == nil {
+		sec = DefaultSecurityConfig()
+	}
+
+	app.middleware = []echo.MiddlewareFunc{
+		mw.Recover(),
+		mw.RequestID(),
+		mw.GzipWithConfig(mw.GzipConfig{
+			Level:     5,
+			MinLength: 2 * 1024,
+		}),
+		logging.EchoMiddleware(),
+		mw.SecureWithConfig(mw.SecureConfig{
+			XSSProtection:         mw.DefaultSecureConfig.XSSProtection,
+			ContentTypeNosniff:    mw.DefaultSecureConfig.ContentTypeNosniff,
+			XFrameOptions:         mw.DefaultSecureConfig.XFrameOptions,
+			HSTSMaxAge:            sec.HSTSMaxAge,
+			HSTSExcludeSubdomains: sec.HSTSExcludeSubdomains,
+			HSTSPreloadEnabled:    sec.HSTSPreloadEnabled,
+			ContentSecurityPolicy: sec.ContentSecurityPolicy,
+			ReferrerPolicy:        sec.ReferrerPolicy,
+		}),
+	}
 }
 
 func (app *Application) Configure() error {
@@ -104,6 +128,7 @@ func (app *Application) Configure() error {
 	NotifyHttpServerConfig(app.config.Server.Http)
 	NotifyHttpsServerConfig(app.config.Server.Https)
 	NotifyCorsConfig(app.config.Server.Cors)
+	NotifySecurityConfig(app.config.Server.Security)
 	NotifyProxySupportConfig(app.config.Proxy)
 	NotifyDatabaseConfig(app.config.Database)
 	NotifyOpenAPIConfig(app.config.OpenAPI)
@@ -113,6 +138,8 @@ func (app *Application) Configure() error {
 
 func (app *Application) Initialize() error {
 	app.resolveHomeDirectory()
+
+	app.buildMiddleware()
 
 	if err := app.configureHttpServer(); err != nil {
 		return err
