@@ -1,8 +1,9 @@
 package version
 
 import (
-	"github.com/Masterminds/semver/v3"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 func Commit() string {

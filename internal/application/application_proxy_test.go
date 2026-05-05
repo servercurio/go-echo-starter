@@ -12,9 +12,9 @@ import (
 func TestResolveProxyTrustOptions_MixedCIDR(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Proxy.TrustedIPRanges = []string{
-		"10.0.0.0/8",   // valid
-		"not-a-cidr",   // invalid — should be dropped, not crash
-		"  ",           // empty after trim — should be skipped
+		"10.0.0.0/8",     // valid
+		"not-a-cidr",     // invalid — should be dropped, not crash
+		"  ",             // empty after trim — should be skipped
 		"192.168.0.0/16", // valid
 	}
 

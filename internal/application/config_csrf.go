@@ -100,7 +100,7 @@ func (c *CsrfConfig) Validate() error {
 // fields match Echo's DefaultCSRFConfig. Consumers flip Enabled to opt
 // in; the rest of the values remain a sensible starting point.
 func DefaultCsrfConfig() *CsrfConfig {
-	return &CsrfConfig{
+	return &CsrfConfig{ //nolint:gosec // G101 false positive: CookieName is the cookie's name, not a credential
 		Enabled:        false,
 		TokenLookup:    "header:X-CSRF-Token",
 		CookieName:     "_csrf",

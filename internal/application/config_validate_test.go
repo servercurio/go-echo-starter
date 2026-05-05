@@ -228,13 +228,13 @@ func TestOpenAPIConfig_Validate(t *testing.T) {
 // regression.
 func TestConfig_ValidateAggregatesErrors(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Server.Http.Port = 0                         // HttpConfig violation
-	cfg.Server.Cors.AllowOrigins = []string{"*"}     // CORS violation
-	cfg.Server.Cors.AllowCredentials = true          // ↑
-	cfg.Server.Csrf.Enabled = true                   // CSRF violation
-	cfg.Server.Csrf.CookieSameSite = "stricct"       // ↑
-	cfg.Proxy.UseXFFHeader = true                    // ProxyConfig violation (DirectIP also default true)
-	cfg.OpenAPI.Swagger.Enabled = true               // OpenAPI violation
+	cfg.Server.Http.Port = 0                     // HttpConfig violation
+	cfg.Server.Cors.AllowOrigins = []string{"*"} // CORS violation
+	cfg.Server.Cors.AllowCredentials = true      // ↑
+	cfg.Server.Csrf.Enabled = true               // CSRF violation
+	cfg.Server.Csrf.CookieSameSite = "stricct"   // ↑
+	cfg.Proxy.UseXFFHeader = true                // ProxyConfig violation (DirectIP also default true)
+	cfg.OpenAPI.Swagger.Enabled = true           // OpenAPI violation
 	cfg.OpenAPI.Swagger.Path = ""
 
 	err := cfg.Validate()
