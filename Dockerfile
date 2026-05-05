@@ -6,7 +6,14 @@ FROM ubuntu:noble-20260410@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cf
 
 COPY ./bin/ /tmp/appsvr/
 
-RUN mkdir -p /tmp/appsvr && \
+# curl is needed for the HEALTHCHECK below; ca-certificates lets curl
+# resolve the daemon's HTTPS endpoint when consumers point HEALTHCHECK at
+# the TLS listener instead. Both are pruned to apt's cache to keep the
+# layer small.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /tmp/appsvr && \
     ls -lah /tmp/appsvr && \
     ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
@@ -23,5 +30,11 @@ RUN mkdir -p /tmp/appsvr && \
             --no-create-home --comment "appsvrd service account" appsvr
 
 USER 10001:10001
+
+# 8080 is the binary's HTTP default. Override the URL via your orchestrator
+# (e.g. HEALTHCHECK in compose / k8s readinessProbe) when the daemon is
+# reconfigured to bind elsewhere or to TLS only.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -sf http://127.0.0.1:8080/api/v1/livez || exit 1
 
 CMD ["appsvrd"]
