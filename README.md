@@ -399,7 +399,11 @@ const defaultConfigPathElement = "myapi"   // directory segment in /etc/<x>/, ~/
 ### 4. `Dockerfile` — paths and binary name are hardcoded
 
 ```dockerfile
-FROM ubuntu:noble-20250127
+# Pinned to ubuntu:noble-20260410 by digest for supply-chain integrity.
+# Multi-arch manifest list covers linux/amd64 and linux/arm64 (the build
+# matrix's two targets). Dependabot's docker ecosystem opens PRs that bump
+# both the tag and the digest together.
+FROM ubuntu:noble-20260410@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
 
 COPY ./bin/ /tmp/myapi/
 
@@ -412,13 +416,21 @@ RUN mkdir -p /tmp/myapi && \
         *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
     esac && \
     cp -v /tmp/myapi/myapid-linux-${ARCH} /usr/local/bin/myapid && \
-    chmod +x /usr/local/bin/myapid && \
-    rm -rf /tmp/myapi
+    chmod 0755 /usr/local/bin/myapid && \
+    chown root:root /usr/local/bin/myapid && \
+    rm -rf /tmp/myapi && \
+    groupadd --system --gid 10001 myapi && \
+    useradd --system --uid 10001 --gid 10001 --shell /usr/sbin/nologin \
+            --no-create-home --comment "myapid service account" myapi
+
+USER 10001:10001
 
 CMD ["myapid"]
 ```
 
 Replace `appsvr` (path element) and `appsvrd` (binary name) on every line. The binary name in the `cp` source must match what `task build:daemon` produces (i.e. derived from `PROJECT_NAME`).
+
+When you re-pin the base image for your fork, run `docker pull ubuntu:noble-<date>` and copy the resulting `Digest:` line into the `FROM` clause. Once the workflow is checked in, Dependabot's `docker` ecosystem will keep the tag-plus-digest pair updated for you.
 
 ### 5. `cmd/daemon/main_test.go` — the test prefix override
 
