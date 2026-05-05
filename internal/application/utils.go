@@ -72,6 +72,16 @@ func NotifySecurityConfig(cfg *SecurityConfig) {
 		Msg("security headers configuration")
 }
 
+func NotifyCsrfConfig(cfg *CsrfConfig) {
+	if cfg == nil {
+		return
+	}
+
+	logging.Daemon.Info().
+		EmbedObject(cfg).
+		Msg("csrf configuration")
+}
+
 func NotifyProxySupportConfig(cfg *ProxyConfig) {
 	if cfg == nil {
 		return
@@ -115,6 +125,29 @@ func CorsMiddleware(cfg *CorsConfig) echo.MiddlewareFunc {
 		AllowHeaders:     cfg.AllowHeaders,
 		AllowCredentials: cfg.AllowCredentials,
 		MaxAge:           cfg.MaxAge,
+	})
+}
+
+// CsrfMiddleware returns the Echo CSRF middleware wired from cfg, or nil
+// when disabled. Mirrors CorsMiddleware so buildMiddleware can skip the
+// no-op case by checking for nil. SameSite is parsed via the validated
+// helper — Validate() already rejected unknown values at Configure time,
+// so any error here is a programming bug; we fall back to the default
+// mode rather than panic.
+func CsrfMiddleware(cfg *CsrfConfig) echo.MiddlewareFunc {
+	if cfg == nil || !cfg.Enabled {
+		return nil
+	}
+	sameSite, _ := parseSameSite(cfg.CookieSameSite)
+	return mw.CSRFWithConfig(mw.CSRFConfig{
+		TokenLookup:    cfg.TokenLookup,
+		CookieName:     cfg.CookieName,
+		CookieDomain:   cfg.CookieDomain,
+		CookiePath:     cfg.CookiePath,
+		CookieMaxAge:   cfg.CookieMaxAge,
+		CookieSecure:   cfg.CookieSecure,
+		CookieHTTPOnly: cfg.CookieHTTPOnly,
+		CookieSameSite: sameSite,
 	})
 }
 

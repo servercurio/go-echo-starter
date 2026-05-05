@@ -98,6 +98,14 @@ func (app *Application) buildMiddleware() {
 			ReferrerPolicy:        sec.ReferrerPolicy,
 		}),
 	}
+
+	// CSRF rides at the end of the chain so the security headers are
+	// already set before any 403 short-circuits the request. Skipped
+	// entirely when disabled (the default) — a nil append is cheaper
+	// than a no-op middleware and keeps the chain shorter.
+	if csrf := CsrfMiddleware(app.config.Server.Csrf); csrf != nil {
+		app.middleware = append(app.middleware, csrf)
+	}
 }
 
 func (app *Application) Configure() error {
@@ -129,6 +137,7 @@ func (app *Application) Configure() error {
 	NotifyHttpsServerConfig(app.config.Server.Https)
 	NotifyCorsConfig(app.config.Server.Cors)
 	NotifySecurityConfig(app.config.Server.Security)
+	NotifyCsrfConfig(app.config.Server.Csrf)
 	NotifyProxySupportConfig(app.config.Proxy)
 	NotifyDatabaseConfig(app.config.Database)
 	NotifyOpenAPIConfig(app.config.OpenAPI)

@@ -139,6 +139,15 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_SERVER_SECURITY_HSTS_PRELOAD_ENABLED`    | `false`      | When `true`, adds the `preload` directive. Preload submission is one-way — opt in deliberately.                                          |
 | `APP_SERVER_SECURITY_CONTENT_SECURITY_POLICY` | —            | `Content-Security-Policy` header value (sent verbatim when non-empty). Empty by default to avoid breaking the bundled Swagger UI.        |
 | `APP_SERVER_SECURITY_REFERRER_POLICY`         | —            | `Referrer-Policy` header value (sent verbatim when non-empty). Common values: `no-referrer`, `strict-origin-when-cross-origin`.          |
+| `APP_SERVER_CSRF_ENABLED`                     | `false`      | Enable Echo's CSRF middleware. Off by default — opt in once the application uses session cookies.                                       |
+| `APP_SERVER_CSRF_TOKEN_LOOKUP`                | `header:X-CSRF-Token` | Echo `<source>:<name>` syntax. Comma-separated alternatives allowed (e.g. `header:X-CSRF-Token,form:csrf`).                |
+| `APP_SERVER_CSRF_COOKIE_NAME`                 | `_csrf`      | Cookie that stores the CSRF token.                                                                                                       |
+| `APP_SERVER_CSRF_COOKIE_DOMAIN`               | —            | Cookie `Domain` attribute. Empty leaves it as the request host.                                                                          |
+| `APP_SERVER_CSRF_COOKIE_PATH`                 | —            | Cookie `Path` attribute. Empty leaves it at `/`.                                                                                         |
+| `APP_SERVER_CSRF_COOKIE_MAX_AGE`              | `86400`      | Cookie lifetime in seconds. `0` issues a session cookie.                                                                                 |
+| `APP_SERVER_CSRF_COOKIE_SECURE`               | `false`      | Restrict the cookie to HTTPS responses. Production behind TLS should set `true`.                                                         |
+| `APP_SERVER_CSRF_COOKIE_HTTP_ONLY`            | `true`       | Hide the cookie from JavaScript. Defeats most XSS-driven token theft.                                                                    |
+| `APP_SERVER_CSRF_COOKIE_SAME_SITE`            | —            | One of `default`, `lax`, `strict`, `none` (case-insensitive). Empty inherits Echo's `SameSiteDefaultMode`.                              |
 | `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
 | `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
 | `APP_DATABASE_MAX_OPEN_CONNS`         | `25`         | Max open connections in the pool. Zero/negative = unlimited.                                          |
