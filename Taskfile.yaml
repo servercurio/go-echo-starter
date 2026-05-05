@@ -101,6 +101,19 @@ tasks:
       - cmd: go generate ./...
         silent: true
 
+  sbom:
+    desc: "Generate CycloneDX SBOMs (bin/sbom.json + bin/sbom.xml) for the daemon module"
+    deps:
+      - vendor
+    cmds:
+      - cmd: |
+          set -e
+          mkdir -p bin
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.7.0
+          "$(go env GOPATH)/bin/cyclonedx-gomod" app -json=true -licenses -output bin/sbom.json -main cmd/daemon
+          "$(go env GOPATH)/bin/cyclonedx-gomod" app -licenses -output bin/sbom.xml -main cmd/daemon
+        silent: true
+
   hash:
     desc: "Generate per-binary SHA-256 hashes (writes bin/<binary>.sha256 per binary)"
     dir: bin
