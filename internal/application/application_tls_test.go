@@ -1,11 +1,54 @@
 package application
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"math/big"
+	"slices"
 	"testing"
 )
+
+func TestHardenedTLSConfigPinsModernCiphers(t *testing.T) {
+	c := hardenedTLSConfig()
+
+	if c.MinVersion != tls.VersionTLS12 {
+		t.Fatalf("MinVersion: got %x, want TLS 1.2 (%x)", c.MinVersion, tls.VersionTLS12)
+	}
+
+	wantCiphers := []uint16{
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+	}
+	if !slices.Equal(c.CipherSuites, wantCiphers) {
+		t.Fatalf("CipherSuites mismatch:\n got %v\nwant %v", c.CipherSuites, wantCiphers)
+	}
+
+	// Defence: every pinned suite must be on Go's recommended list.
+	// crypto/tls.InsecureCipherSuites() returns the deprecated/CBC ones.
+	insecure := map[uint16]struct{}{}
+	for _, s := range tls.InsecureCipherSuites() {
+		insecure[s.ID] = struct{}{}
+	}
+	for _, id := range c.CipherSuites {
+		if _, bad := insecure[id]; bad {
+			t.Fatalf("pinned suite %x is in tls.InsecureCipherSuites()", id)
+		}
+	}
+
+	wantCurves := []tls.CurveID{tls.X25519, tls.CurveP256}
+	if !slices.Equal(c.CurvePreferences, wantCurves) {
+		t.Fatalf("CurvePreferences: got %v, want %v", c.CurvePreferences, wantCurves)
+	}
+
+	if !slices.Equal(c.NextProtos, []string{"h2", "http/1.1"}) {
+		t.Fatalf("NextProtos: got %v", c.NextProtos)
+	}
+}
 
 // newTestApp builds a minimal Application with the given TLS hostname so
 // generateTlsCertificate can run without a full Configure/Initialize.

@@ -231,6 +231,33 @@ func (app *Application) configureAutoTlsManager() error {
 	return nil
 }
 
+// hardenedTLSConfig returns the *tls.Config used for the static-cert and
+// self-signed paths. The ACME path uses autocert.Manager.TLSConfig() which
+// already produces a hardened config.
+//
+// CipherSuites only configures TLS 1.2 — Go selects TLS 1.3 ciphers
+// automatically and ignores this slice for 1.3 connections. The set below
+// mirrors Mozilla "intermediate" minus AES-CBC (Go drops CBC suites in
+// modern releases regardless).
+func hardenedTLSConfig() *tls.Config {
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		NextProtos: []string{"h2", "http/1.1"},
+		CurvePreferences: []tls.CurveID{
+			tls.X25519,
+			tls.CurveP256,
+		},
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		},
+	}
+}
+
 func (app *Application) startTlsServer(ctx context.Context) {
 	if !app.config.Server.Https.Enabled {
 		return
@@ -252,11 +279,8 @@ func (app *Application) startTlsServer(ctx context.Context) {
 		GracefulTimeout: tlsCfg.ShutdownTimeout,
 		// Static-cert and self-signed paths use this TLSConfig; ACME path
 		// overrides it below with autocert.Manager.TLSConfig() (which also
-		// pins MinVersion to TLS 1.2 internally).
-		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS12,
-			NextProtos: []string{"h2", "http/1.1"},
-		},
+		// pins MinVersion to TLS 1.2 and a hardened cipher set internally).
+		TLSConfig: hardenedTLSConfig(),
 		BeforeServeFunc: func(s *http.Server) error {
 			s.ReadTimeout = tlsCfg.ReadTimeout
 			s.ReadHeaderTimeout = tlsCfg.ReadHeaderTimeout
