@@ -34,6 +34,7 @@ func (c *ServerConfig) Validate() error {
 		c.Https.Validate(),
 		c.Cors.Validate(),
 		c.Security.Validate(),
+		c.Csrf.Validate(),
 	)
 }
 

@@ -222,12 +222,17 @@ func TestOpenAPIConfig_Validate(t *testing.T) {
 
 // TestConfig_ValidateAggregatesErrors confirms the top-level Validate
 // returns *all* failures via errors.Join — operators shouldn't have to
-// fix-boot-fix-boot for each problem in turn.
+// fix-boot-fix-boot for each problem in turn. CSRF is included because
+// CsrfConfig was added after the original aggregator and an early
+// version of ServerConfig.Validate forgot to wire it in; this pins the
+// regression.
 func TestConfig_ValidateAggregatesErrors(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Server.Http.Port = 0                     // HttpConfig violation
 	cfg.Server.Cors.AllowOrigins = []string{"*"} // CORS violation
 	cfg.Server.Cors.AllowCredentials = true      // ↑
+	cfg.Server.Csrf.Enabled = true               // CSRF violation
+	cfg.Server.Csrf.CookieSameSite = "stricct"   // ↑
 	cfg.Proxy.UseXFFHeader = true                // ProxyConfig violation (DirectIP also default true)
 	cfg.OpenAPI.Swagger.Enabled = true           // OpenAPI violation
 	cfg.OpenAPI.Swagger.Path = ""
@@ -237,7 +242,7 @@ func TestConfig_ValidateAggregatesErrors(t *testing.T) {
 		t.Fatal("expected joined error, got nil")
 	}
 	msg := err.Error()
-	for _, want := range []string{"port", "wildcard", "only one of", "swagger.path"} {
+	for _, want := range []string{"port", "wildcard", "stricct", "only one of", "swagger.path"} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("joined error missing %q: %s", want, msg)
 		}
