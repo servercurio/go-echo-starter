@@ -148,6 +148,11 @@ All keys are prefixed with `APP_`. Examples:
 | `APP_SERVER_CSRF_COOKIE_SECURE`               | `false`      | Restrict the cookie to HTTPS responses. Production behind TLS should set `true`.                                                         |
 | `APP_SERVER_CSRF_COOKIE_HTTP_ONLY`            | `true`       | Hide the cookie from JavaScript. Defeats most XSS-driven token theft.                                                                    |
 | `APP_SERVER_CSRF_COOKIE_SAME_SITE`            | —            | One of `default`, `lax`, `strict`, `none` (case-insensitive). Empty inherits Echo's `SameSiteDefaultMode`.                              |
+| `APP_SERVER_RATE_LIMIT_ENABLED`               | `false`      | Per-client request-rate limiter keyed off `RealIP()`. Returns `429` when exceeded. Off by default.                                       |
+| `APP_SERVER_RATE_LIMIT_RATE`                  | `0`          | Steady-state allowed requests per second per client IP. Required when `ENABLED=true`.                                                    |
+| `APP_SERVER_RATE_LIMIT_BURST`                 | `0`          | Bucket size — clients may make this many requests in one shot before the rate kicks in. Zero falls back to `ceil(rate)`.                 |
+| `APP_SERVER_RATE_LIMIT_EXPIRES_IN`            | `3m`         | Inactivity TTL for a per-client bucket before the memory store evicts it.                                                                |
+| `APP_SERVER_RATE_LIMIT_MAX_CONNECTIONS`       | `0`          | Cap on simultaneous TCP connections per listener (HTTP and HTTPS each independently). Zero disables the cap.                             |
 | `APP_DATABASE_DRIVER`                 | `pgx`        | `database/sql` driver name (PostgreSQL via pgx) |
 | `APP_DATABASE_DSN`                    | —            | Connection string. **Empty disables the database subsystem entirely** (Connect/Migrate become no-ops, readiness probe ignores DB state). |
 | `APP_DATABASE_MAX_OPEN_CONNS`         | `25`         | Max open connections in the pool. Zero/negative = unlimited.                                          |

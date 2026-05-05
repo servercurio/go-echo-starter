@@ -7,11 +7,12 @@ import (
 )
 
 type ServerConfig struct {
-	Http     *HttpConfig     `yaml:"http" json:"http"`
-	Https    *TlsConfig      `yaml:"https" json:"https"`
-	Cors     *CorsConfig     `yaml:"cors" json:"cors"`
-	Security *SecurityConfig `yaml:"security" json:"security"`
-	Csrf     *CsrfConfig     `yaml:"csrf" json:"csrf"`
+	Http      *HttpConfig      `yaml:"http" json:"http"`
+	Https     *TlsConfig       `yaml:"https" json:"https"`
+	Cors      *CorsConfig      `yaml:"cors" json:"cors"`
+	Security  *SecurityConfig  `yaml:"security" json:"security"`
+	Csrf      *CsrfConfig      `yaml:"csrf" json:"csrf"`
+	RateLimit *RateLimitConfig `yaml:"rateLimit" json:"rateLimit"`
 }
 
 func (c *ServerConfig) FromEnv(prefix string) {
@@ -20,6 +21,7 @@ func (c *ServerConfig) FromEnv(prefix string) {
 	c.Cors.FromEnv(env.AddPrefix(prefix, "cors"))
 	c.Security.FromEnv(env.AddPrefix(prefix, "security"))
 	c.Csrf.FromEnv(env.AddPrefix(prefix, "csrf"))
+	c.RateLimit.FromEnv(env.AddPrefix(prefix, "rate_limit"))
 }
 
 // Validate aggregates the per-subsystem validators with errors.Join so an
@@ -35,15 +37,17 @@ func (c *ServerConfig) Validate() error {
 		c.Cors.Validate(),
 		c.Security.Validate(),
 		c.Csrf.Validate(),
+		c.RateLimit.Validate(),
 	)
 }
 
 func DefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
-		Http:     DefaultHttpConfig(),
-		Https:    DefaultTlsConfig(),
-		Cors:     DefaultCorsConfig(),
-		Security: DefaultSecurityConfig(),
-		Csrf:     DefaultCsrfConfig(),
+		Http:      DefaultHttpConfig(),
+		Https:     DefaultTlsConfig(),
+		Cors:      DefaultCorsConfig(),
+		Security:  DefaultSecurityConfig(),
+		Csrf:      DefaultCsrfConfig(),
+		RateLimit: DefaultRateLimitConfig(),
 	}
 }

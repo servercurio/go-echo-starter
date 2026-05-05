@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
 	mw "github.com/labstack/echo/v5/middleware"
+	"golang.org/x/net/netutil"
+
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
@@ -56,9 +59,28 @@ func (app *Application) startHttpServer(ctx context.Context) {
 		},
 	}
 
+	if maxConns := app.maxListenerConnections(); maxConns > 0 {
+		ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", address)
+		if err != nil {
+			logging.Daemon.Error().Err(err).Str("address", address).Msg("http server failed to listen")
+			return
+		}
+		sc.Listener = netutil.LimitListener(ln, maxConns)
+	}
+
 	if err := sc.Start(ctx, app.httpServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logging.Daemon.Error().
 			Err(errorx.EnsureStackTrace(err)).
 			Msg("http server shutting down due to an error")
 	}
+}
+
+// maxListenerConnections returns the configured per-listener concurrent-
+// connection cap, or 0 when no cap is set. Hoisted into a helper because
+// both the HTTP and HTTPS server start paths consult the same value.
+func (app *Application) maxListenerConnections() int {
+	if app.config.Server.RateLimit == nil {
+		return 0
+	}
+	return app.config.Server.RateLimit.MaxConnections
 }

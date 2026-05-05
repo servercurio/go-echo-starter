@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,9 +23,11 @@ import (
 	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
 	mw "github.com/labstack/echo/v5/middleware"
+	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/net/netutil"
+
 	ce "github.com/servercurio/go-echo-starter/internal/errors"
 	"github.com/servercurio/go-echo-starter/internal/logging"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 type InMemoryCertificate struct {
@@ -284,6 +287,31 @@ func (app *Application) startTlsServer(ctx context.Context) {
 			// with it is safe.
 			sc.TLSConfig = acm.TLSConfig()
 
+			if err := app.applyListenerLimit(ctx, sc, address, true); err != nil {
+				return
+			}
+			if err := sc.Start(ctx, app.tlsServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logging.Daemon.Error().
+					Err(errorx.EnsureStackTrace(err)).
+					Msg("https server shutting down due to an error")
+			}
+			return
+		}
+
+		// Self-signed ephemeral path. StartTLS sets sc.TLSConfig.Certificates
+		// and then calls sc.start, which only wraps the listener with TLS
+		// when sc.Listener is nil — so when we inject a LimitListener we
+		// also have to take over TLS-config setup here.
+		if app.maxListenerConnections() > 0 {
+			cer, err := tls.X509KeyPair(app.certificate.Certificate, app.certificate.PrivateKey)
+			if err != nil {
+				logging.Daemon.Error().Err(err).Msg("https server failed to load ephemeral key pair")
+				return
+			}
+			sc.TLSConfig.Certificates = []tls.Certificate{cer}
+			if err := app.applyListenerLimit(ctx, sc, address, true); err != nil {
+				return
+			}
 			if err := sc.Start(ctx, app.tlsServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logging.Daemon.Error().
 					Err(errorx.EnsureStackTrace(err)).
@@ -300,9 +328,79 @@ func (app *Application) startTlsServer(ctx context.Context) {
 		return
 	}
 
+	// Static cert/key path. Same caveat as the ephemeral branch above: when
+	// we inject a LimitListener we also assume TLS-config ownership.
+	if app.maxListenerConnections() > 0 {
+		cer, err := loadStaticKeyPair(app.config.Server.Https.Certificate, app.config.Server.Https.Key)
+		if err != nil {
+			logging.Daemon.Error().Err(err).Msg("https server failed to load static key pair")
+			return
+		}
+		sc.TLSConfig.Certificates = []tls.Certificate{cer}
+		if err := app.applyListenerLimit(ctx, sc, address, true); err != nil {
+			return
+		}
+		if err := sc.Start(ctx, app.tlsServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logging.Daemon.Error().
+				Err(errorx.EnsureStackTrace(err)).
+				Msg("https server shutting down due to an error")
+		}
+		return
+	}
+
 	if err := sc.StartTLS(ctx, app.tlsServer, app.config.Server.Https.Certificate, app.config.Server.Https.Key); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logging.Daemon.Error().
 			Err(errorx.EnsureStackTrace(err)).
 			Msg("https server shutting down due to an error")
+	}
+}
+
+// applyListenerLimit pre-creates the TCP listener for sc, wraps it with
+// netutil.LimitListener (and tls.NewListener when wrapTLS is true), and
+// stores the result on sc.Listener so Echo's start() uses our wrapped
+// listener verbatim. Returns the listen error (already logged) so the
+// caller can return early without serving.
+func (app *Application) applyListenerLimit(ctx context.Context, sc *echo.StartConfig, address string, wrapTLS bool) error {
+	maxConns := app.maxListenerConnections()
+	if maxConns <= 0 {
+		return nil
+	}
+	ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", address)
+	if err != nil {
+		logging.Daemon.Error().Err(err).Str("address", address).Msg("server failed to listen")
+		return err
+	}
+	ln = netutil.LimitListener(ln, maxConns)
+	if wrapTLS {
+		ln = tls.NewListener(ln, sc.TLSConfig)
+	}
+	sc.Listener = ln
+	return nil
+}
+
+// loadStaticKeyPair mirrors echo.StartConfig.StartTLS's filepathOrContent
+// handling: a string is a filesystem path, a []byte is the raw PEM. The
+// LimitListener path bypasses StartTLS and so has to do the same dance
+// itself.
+func loadStaticKeyPair(cert, key any) (tls.Certificate, error) {
+	certBytes, err := pemBytes(cert)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	keyBytes, err := pemBytes(key)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	return tls.X509KeyPair(certBytes, keyBytes)
+}
+
+func pemBytes(v any) ([]byte, error) {
+	switch x := v.(type) {
+	case []byte:
+		return x, nil
+	case string:
+		return os.ReadFile(x)
+	default:
+		return nil, errors.New("unexpected cert/key type (want string path or []byte PEM)")
 	}
 }
