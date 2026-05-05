@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"sync"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joomcode/errorx"
@@ -12,11 +11,6 @@ import (
 
 var dbConn *sql.DB
 var m sync.Mutex
-
-// pingTimeout bounds how long the readiness probe will wait for the database
-// to respond before declaring the connection unhealthy. Keep it short — the
-// probe is hit on every readyz request and shouldn't stall request handling.
-const pingTimeout = 1 * time.Second
 
 // Connection returns the shared *sql.DB singleton, or nil if Connect has not
 // been called or DSN was empty.
@@ -80,18 +74,19 @@ func Disconnect() error {
 	return nil
 }
 
-// IsHealthy returns true if a connection has been established AND a short
-// PingContext succeeds. Used by the readiness probe to gate /readyz on
-// database availability. Returns false (without erroring) when the database
-// subsystem is disabled or the singleton hasn't been initialised yet.
-func IsHealthy() bool {
+// IsHealthy returns true if a connection has been established AND a
+// PingContext using the supplied context succeeds. Used by the readiness
+// probe to gate /readyz on database availability — callers pass the
+// per-check budgeted context from health.Registry.Snapshot, so the
+// PingContext deadline is enforced at the registry level rather than
+// inside this package. Returns false (without erroring) when the
+// singleton hasn't been initialised yet or when the ping fails for any
+// reason.
+func IsHealthy(ctx context.Context) bool {
 	conn := Connection()
 	if conn == nil {
 		return false
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), pingTimeout)
-	defer cancel()
 
 	return conn.PingContext(ctx) == nil
 }

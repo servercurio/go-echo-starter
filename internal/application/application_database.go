@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/servercurio/go-echo-starter/internal/database"
 	"github.com/servercurio/go-echo-starter/internal/database/orm"
 	apperrors "github.com/servercurio/go-echo-starter/internal/errors"
@@ -10,12 +12,14 @@ import (
 // IsDatabaseHealthy reports whether the configured database is currently
 // reachable. Returns true when the database subsystem is disabled (no DSN
 // configured) so callers can compose readiness checks without special-casing
-// the disabled state.
-func (app *Application) IsDatabaseHealthy() bool {
+// the disabled state. The context bounds the underlying PingContext —
+// readiness handlers pass the per-check budget so a hung pool can't stall
+// /readyz past kubelet's probe deadline.
+func (app *Application) IsDatabaseHealthy(ctx context.Context) bool {
 	if !app.config.Database.Enabled() {
 		return true
 	}
-	return database.IsHealthy()
+	return database.IsHealthy(ctx)
 }
 
 // initializeDatabase opens the database connection, runs any pending Goose

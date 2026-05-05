@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"strings"
 
 	"github.com/servercurio/go-echo-starter/internal/health"
@@ -20,7 +21,7 @@ func (app *Application) HealthRegistry() *health.Registry {
 // must stay cheap — long checks belong behind a cached background probe.
 func (app *Application) registerHealthChecks() {
 	// Lifecycle: reflects the atomic.Bool flipped by Start/shutdown.
-	app.healthRegistry.Register("lifecycle", func() health.ComponentResult {
+	app.healthRegistry.Register("lifecycle", func(_ context.Context) health.ComponentResult {
 		if app.IsReady() {
 			return health.ComponentResult{Status: health.StatusUp}
 		}
@@ -33,7 +34,7 @@ func (app *Application) registerHealthChecks() {
 	// HTTP: if the request reaches this handler the listener is up by
 	// definition. Surface the bind details for diagnostics.
 	httpCfg := app.config.Server.Http
-	app.healthRegistry.Register("http", func() health.ComponentResult {
+	app.healthRegistry.Register("http", func(_ context.Context) health.ComponentResult {
 		return health.ComponentResult{
 			Status: health.StatusUp,
 			Details: map[string]any{
@@ -61,7 +62,7 @@ func (app *Application) registerHealthChecks() {
 	//                             self-signed cert in production.
 	tlsCfg := app.config.Server.Https
 	if tlsCfg != nil && tlsCfg.Enabled {
-		app.healthRegistry.Register("https", func() health.ComponentResult {
+		app.healthRegistry.Register("https", func(_ context.Context) health.ComponentResult {
 			autoCert := strings.TrimSpace(tlsCfg.Certificate) == "" || strings.TrimSpace(tlsCfg.Key) == ""
 			ephemeral := autoCert && !tlsCfg.UseAcmeIssuer
 
@@ -83,14 +84,18 @@ func (app *Application) registerHealthChecks() {
 	// PingContext on the pool (see app.IsDatabaseHealthy).
 	dbCfg := app.config.Database
 	if dbCfg.Enabled() {
-		app.healthRegistry.Register("database", func() health.ComponentResult {
+		app.healthRegistry.Register("database", func(ctx context.Context) health.ComponentResult {
 			details := map[string]any{
 				"driver": dbCfg.Driver,
 			}
-			if app.IsDatabaseHealthy() {
+			if app.IsDatabaseHealthy(ctx) {
 				return health.ComponentResult{Status: health.StatusUp, Details: details}
 			}
-			details["reason"] = "ping failed within timeout"
+			if ctx.Err() == context.DeadlineExceeded {
+				details["reason"] = "ping exceeded readiness probe budget"
+			} else {
+				details["reason"] = "ping failed"
+			}
 			return health.ComponentResult{Status: health.StatusDown, Details: details}
 		})
 	}

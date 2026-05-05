@@ -83,7 +83,7 @@ func snapshotEndpoint(id, name string, cfg *router.Config) router.Endpoint {
 				})
 			}
 
-			report := cfg.HealthRegistry.Snapshot()
+			report := cfg.HealthRegistry.Snapshot(c.Request().Context())
 			statusCode := http.StatusOK
 			if report.Status != health.StatusUp {
 				statusCode = http.StatusServiceUnavailable
