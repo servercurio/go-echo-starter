@@ -19,6 +19,11 @@ on:
         type: string
         required: false
         default: "Unit Test"
+      coverage-threshold:
+        description: "Minimum total coverage percentage (the workflow fails if coverage falls below this floor). Set to 0 to disable."
+        type: string
+        required: false
+        default: "30"
     secrets:
       codecov-token:
         description: "Codecov upload token (required for private repos; optional but recommended for public repos to avoid rate limits)"
@@ -69,3 +74,25 @@ jobs:
           flags: unittests
           fail_ci_if_error: false
           token: ${{ secrets.codecov-token }}
+
+      # Threshold gate runs *after* the codecov upload so a sub-threshold
+      # run still publishes its coverage to the Codecov dashboard before
+      # this step fails the workflow.
+      - name: Enforce Coverage Threshold
+        env:
+          COVERAGE_THRESHOLD: ${{ inputs.coverage-threshold }}
+        run: |
+          if [ "${COVERAGE_THRESHOLD}" = "0" ]; then
+            echo "coverage threshold disabled (input set to 0)"
+            exit 0
+          fi
+          pct=$(go tool cover -func=cover.out | awk '/^total:/ {print $3}' | tr -d '%')
+          if [ -z "$pct" ]; then
+            echo "could not parse coverage percentage from cover.out" >&2
+            exit 1
+          fi
+          echo "total coverage: ${pct}%, threshold: ${COVERAGE_THRESHOLD}%"
+          awk -v p="$pct" -v t="${COVERAGE_THRESHOLD}" 'BEGIN { exit (p+0 < t+0) }' || {
+            echo "::error::Coverage ${pct}% is below the configured threshold of ${COVERAGE_THRESHOLD}%"
+            exit 1
+          }

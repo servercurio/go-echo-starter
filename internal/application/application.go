@@ -99,6 +99,12 @@ func (app *Application) buildMiddleware() {
 		}),
 	}
 
+	// Rate limit goes early so 429s short-circuit before any heavier
+	// per-request work. Skipped when disabled — see RateLimitMiddleware.
+	if rl := RateLimitMiddleware(app.config.Server.RateLimit); rl != nil {
+		app.middleware = append(app.middleware, rl)
+	}
+
 	// CSRF rides at the end of the chain so the security headers are
 	// already set before any 403 short-circuits the request. Skipped
 	// entirely when disabled (the default) — a nil append is cheaper
@@ -138,6 +144,7 @@ func (app *Application) Configure() error {
 	NotifyCorsConfig(app.config.Server.Cors)
 	NotifySecurityConfig(app.config.Server.Security)
 	NotifyCsrfConfig(app.config.Server.Csrf)
+	NotifyRateLimitConfig(app.config.Server.RateLimit)
 	NotifyProxySupportConfig(app.config.Proxy)
 	NotifyDatabaseConfig(app.config.Database)
 	NotifyOpenAPIConfig(app.config.OpenAPI)

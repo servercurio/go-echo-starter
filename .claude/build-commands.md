@@ -10,6 +10,7 @@
 - `task build` — Cross-compiles 6 binaries (linux/darwin/windows × amd64/arm64) into `bin/`. Calls `task generate` first.
 - `task hash` — Writes one `bin/<binary>.sha256` file per built binary (`shasum -c` compatible). Run locally to verify a build (`cd bin && shasum -a 256 -c appsvrd-linux-amd64.sha256`).
 - `task sign` — Depends on `task hash`. GPG-signs each built binary AND its `.sha256` file, producing `bin/<binary>.asc` and `bin/<binary>.sha256.asc`. Requires `gpg` with a configured signing key. Verify with `gpg --verify bin/appsvrd-linux-amd64.asc bin/appsvrd-linux-amd64` or `gpg --verify bin/appsvrd-linux-amd64.sha256.asc bin/appsvrd-linux-amd64.sha256`.
+- `task sbom` — Generates CycloneDX 1.5 SBOMs at `bin/sbom.json` and `bin/sbom.xml` via `cyclonedx-gomod` (installed on demand at a pinned version). Listed in `.releaserc.json`'s GitHub assets and run by `publishCmd`, so each release ships both flavours.
 - `task run:daemon` — Builds for the current platform and runs the daemon locally.
 - `task build:container` / `task run:container` — Build / run the Docker image.
 - `task clean` — Removes `bin/`, `dist/`, and coverage output.
