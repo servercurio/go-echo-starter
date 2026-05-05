@@ -109,6 +109,17 @@ tasks:
       - cmd: go generate ./...
         silent: true
 
+  openapi:gen:
+    desc: "Render the OpenAPI spec to docs/openapi.yaml (run after route changes)"
+    cmds:
+      - go run ./cmd/openapi-gen -out docs/openapi.yaml
+
+  openapi:check:
+    desc: "Verify docs/openapi.yaml matches the spec produced from current code"
+    cmds:
+      - go run ./cmd/openapi-gen -out /tmp/openapi.generated.yaml
+      - diff -u docs/openapi.yaml /tmp/openapi.generated.yaml
+
   sbom:
     desc: "Generate CycloneDX SBOMs (bin/sbom.json + bin/sbom.xml) for the daemon module"
     deps:

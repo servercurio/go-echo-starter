@@ -423,7 +423,7 @@ func pemBytes(v any) ([]byte, error) {
 	case []byte:
 		return x, nil
 	case string:
-		return os.ReadFile(x)
+		return os.ReadFile(x) //nolint:gosec // G304 false positive: x is the operator-supplied APP_SERVER_HTTPS_CERTIFICATE path, not user input
 	default:
 		return nil, errors.New("unexpected cert/key type (want string path or []byte PEM)")
 	}

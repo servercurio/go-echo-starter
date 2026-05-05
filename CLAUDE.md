@@ -22,7 +22,7 @@ A fresh clone won't have `vendor/` until `task vendor` (or any task that depends
 
 ## When adding code
 
-- **New route**: add a file under `internal/api/v1/` returning a `router.Route`, then register it via `module.WithRoutes(...)` in `internal/api/v1/module.go`. Don't bypass the module abstraction by calling `e.GET(...)` directly on the Echo instance.
+- **New route**: add a file under `internal/api/v1/` returning a `router.Route`, then register it via `module.WithRoutes(...)` in `internal/api/v1/module.go`. Don't bypass the module abstraction by calling `e.GET(...)` directly on the Echo instance. After adding/changing routes, run `task openapi:gen` to refresh `docs/openapi.yaml` — CI's OpenAPI Drift check fails the PR if the checked-in spec doesn't match what the code now produces.
 - **New top-level module**: register it in `cmd/daemon/main.go` alongside the `api` module.
 - **New config field**: add to the appropriate struct under `internal/application/config_*.go`, give it a sensible default in `DefaultConfig()`, wire env-var loading using the helpers in `internal/env/`, and extend the struct's `Validate() error` to reject obviously-bad values — the daemon refuses to boot when `Application.Configure` returns a non-nil error, so validation lives there rather than at request time. When adding a brand-new config struct, also implement `Validate()` and aggregate it into `Config.Validate()` (`internal/application/config.go`).
 - **New middleware**: if globally applied, add to the middleware stack in `internal/application/application.go`. If module-scoped, pass via `module.WithMiddleware(...)`.
