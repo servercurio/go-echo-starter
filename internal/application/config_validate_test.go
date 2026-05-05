@@ -225,11 +225,11 @@ func TestOpenAPIConfig_Validate(t *testing.T) {
 // fix-boot-fix-boot for each problem in turn.
 func TestConfig_ValidateAggregatesErrors(t *testing.T) {
 	cfg := DefaultConfig()
-	cfg.Server.Http.Port = 0                         // HttpConfig violation
-	cfg.Server.Cors.AllowOrigins = []string{"*"}     // CORS violation
-	cfg.Server.Cors.AllowCredentials = true          // ↑
-	cfg.Proxy.UseXFFHeader = true                    // ProxyConfig violation (DirectIP also default true)
-	cfg.OpenAPI.Swagger.Enabled = true               // OpenAPI violation
+	cfg.Server.Http.Port = 0                     // HttpConfig violation
+	cfg.Server.Cors.AllowOrigins = []string{"*"} // CORS violation
+	cfg.Server.Cors.AllowCredentials = true      // ↑
+	cfg.Proxy.UseXFFHeader = true                // ProxyConfig violation (DirectIP also default true)
+	cfg.OpenAPI.Swagger.Enabled = true           // OpenAPI violation
 	cfg.OpenAPI.Swagger.Path = ""
 
 	err := cfg.Validate()

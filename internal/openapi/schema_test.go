@@ -69,14 +69,14 @@ func TestSchemaRegistry_SliceMapByteSlice(t *testing.T) {
 }
 
 type fixtureUser struct {
-	ID        int        `json:"id"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email,omitempty"`
-	Tags      []string   `json:"tags"`
-	CreatedAt time.Time  `json:"createdAt"`
+	ID        int          `json:"id"`
+	Name      string       `json:"name"`
+	Email     string       `json:"email,omitempty"`
+	Tags      []string     `json:"tags"`
+	CreatedAt time.Time    `json:"createdAt"`
 	Friend    *fixtureUser `json:"friend,omitempty"`
-	internal  string     // unexported, must be skipped
-	Skipped   string     `json:"-"`
+	internal  string       //nolint:unused // unexported, must be skipped by the generator
+	Skipped   string       `json:"-"`
 }
 
 func TestSchemaRegistry_StructHonorsJSONTags(t *testing.T) {

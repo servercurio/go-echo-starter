@@ -58,6 +58,6 @@ func Render(c *echo.Context, statusCode int, report Report) error {
 				"error":  "failed to marshal json health report",
 			})
 		}
-		return c.Blob(statusCode, echo.MIMEApplicationJSONCharsetUTF8, body)
+		return c.Blob(statusCode, echo.MIMEApplicationJSON, body)
 	}
 }

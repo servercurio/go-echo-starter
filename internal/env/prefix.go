@@ -16,9 +16,7 @@ func AddPrefix(prefix, key string) string {
 		prefix += separator
 	}
 
-	if strings.HasPrefix(key, separator) {
-		key = key[len(separator):]
-	}
+	key = strings.TrimPrefix(key, separator)
 
 	if strings.HasPrefix(key, prefix) {
 		return key

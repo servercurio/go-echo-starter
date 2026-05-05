@@ -83,10 +83,9 @@ func (app *Application) configureTlsServer() error {
 			var err error
 			if app.certificate, err = app.generateTlsCertificate(); err != nil {
 				return err
-			} else {
-				logging.Daemon.Info().
-					Msg("ephemeral tls - self-signed certificate generated")
 			}
+			logging.Daemon.Info().
+				Msg("ephemeral tls - self-signed certificate generated")
 		}
 	}
 
@@ -195,13 +194,14 @@ func (app *Application) configureAutoTlsManager() error {
 		}
 	}
 
-	if err := os.MkdirAll(cacheDir, 0700); err != nil {
+	if err := os.MkdirAll(cacheDir, 0700); err != nil { //nolint:gosec // 0700 is required: directories need execute bit to traverse, and the cache holds private keys we want owner-only
 		var wErr error
-		if os.IsPermission(err) {
+		switch {
+		case os.IsPermission(err):
 			wErr = ce.FileAccessDenied.Wrap(err, "permission denied: %s", cacheDir)
-		} else if os.IsExist(err) {
+		case os.IsExist(err):
 			wErr = ce.InvalidFilePath.Wrap(err, "file already exists and is a regular file: %s", cacheDir)
-		} else {
+		default:
 			wErr = errorx.ExternalError.Wrap(err, "failed to create directory: %s", cacheDir)
 		}
 
@@ -215,7 +215,7 @@ func (app *Application) configureAutoTlsManager() error {
 	// MkdirAll honours the mode only when creating; if cacheDir already
 	// existed with looser permissions (e.g. from a pre-fix daemon version),
 	// tighten it now. The cache holds private keys and ACME account state.
-	if err := os.Chmod(cacheDir, 0700); err != nil {
+	if err := os.Chmod(cacheDir, 0700); err != nil { //nolint:gosec // 0700 is required: directories need execute bit to traverse, and the cache holds private keys we want owner-only
 		logging.Daemon.Warn().
 			Err(err).
 			Str("path", cacheDir).

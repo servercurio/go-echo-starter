@@ -58,7 +58,7 @@ func (r *SchemaRegistry) SchemaFor(t reflect.Type) *Schema {
 func (r *SchemaRegistry) schemaFor(t reflect.Type) *Schema {
 	// Pointer wrapper: emit the pointee's schema with nullable=true.
 	// Repeated wraps collapse — reflect handles that for us.
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		s := r.schemaFor(t.Elem())
 		// $ref schemas can't carry siblings in OpenAPI 3.0, so don't
 		// stamp nullable on a ref. The pointer-ness is documented at
@@ -195,7 +195,7 @@ func (r *SchemaRegistry) inlineStructSchema(t reflect.Type) *Schema {
 		// AND the underlying type is not a pointer (pointers are
 		// nullable so we treat them as optional). This is a pragmatic
 		// approximation of "what the consumer must always send".
-		if !optional && f.Type.Kind() != reflect.Ptr {
+		if !optional && f.Type.Kind() != reflect.Pointer {
 			required = append(required, name)
 		}
 	}

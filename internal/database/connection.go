@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"sync"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joomcode/errorx"
 )
+
+const connectPingTimeout = 5 * time.Second
 
 var dbConn *sql.DB
 var m sync.Mutex
@@ -47,7 +50,9 @@ func Connect(cfg *Config) error {
 	conn.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 	conn.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
 
-	if err = conn.Ping(); err != nil {
+	pingCtx, cancel := context.WithTimeout(context.Background(), connectPingTimeout)
+	defer cancel()
+	if err = conn.PingContext(pingCtx); err != nil {
 		_ = conn.Close()
 		return errorx.InitializationFailed.Wrap(err, "failed to ping database")
 	}
