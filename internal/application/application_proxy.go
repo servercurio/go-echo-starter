@@ -4,19 +4,18 @@ import (
 	"net"
 	"strings"
 
-	"github.com/joomcode/errorx"
 	"github.com/labstack/echo/v5"
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
+// configureProxySupport wires the IP-extractor for both servers based on
+// the proxy config. Mutually-exclusive-flag validation is enforced earlier
+// at Configure time via ProxyConfig.Validate, so by the time we reach here
+// at most one of the three flags is true.
 func (app *Application) configureProxySupport() error {
 	pc := app.config.Proxy
 	if pc == nil {
 		return nil
-	}
-
-	if err := app.validateProxyFlags(); err != nil {
-		return err
 	}
 
 	var extractor echo.IPExtractor
@@ -34,32 +33,6 @@ func (app *Application) configureProxySupport() error {
 
 	app.httpServer.IPExtractor = extractor
 	app.tlsServer.IPExtractor = extractor
-	return nil
-}
-
-func (app *Application) validateProxyFlags() error {
-	pc := app.config.Proxy
-	if pc == nil {
-		return nil
-	}
-
-	flagCnt := 0
-	if pc.UseDirectIP {
-		flagCnt++
-	}
-
-	if pc.UseXRealIPHeader {
-		flagCnt++
-	}
-
-	if pc.UseXFFHeader {
-		flagCnt++
-	}
-
-	if flagCnt > 1 {
-		return errorx.IllegalState.New("only one of useDirectIP, useXRealIPHeader, or useXFFHeader can be enabled")
-	}
-
 	return nil
 }
 

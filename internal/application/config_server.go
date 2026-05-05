@@ -1,6 +1,10 @@
 package application
 
-import "github.com/servercurio/go-echo-starter/internal/env"
+import (
+	"errors"
+
+	"github.com/servercurio/go-echo-starter/internal/env"
+)
 
 type ServerConfig struct {
 	Http     *HttpConfig     `yaml:"http" json:"http"`
@@ -14,6 +18,21 @@ func (c *ServerConfig) FromEnv(prefix string) {
 	c.Https.FromEnv(env.AddPrefix(prefix, "https"))
 	c.Cors.FromEnv(env.AddPrefix(prefix, "cors"))
 	c.Security.FromEnv(env.AddPrefix(prefix, "security"))
+}
+
+// Validate aggregates the per-subsystem validators with errors.Join so an
+// operator sees every config issue at once rather than fixing them one
+// boot at a time.
+func (c *ServerConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+	return errors.Join(
+		c.Http.Validate(),
+		c.Https.Validate(),
+		c.Cors.Validate(),
+		c.Security.Validate(),
+	)
 }
 
 func DefaultServerConfig() *ServerConfig {

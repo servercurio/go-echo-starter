@@ -35,3 +35,40 @@ func TestDefaultConfig_IsDisabledByDefault(t *testing.T) {
 	assert.False(cfg.Enabled(), "starter must default to no database so it runs without external dependencies")
 	assert.NotEmpty(cfg.Driver, "default driver should be populated so enabling the DB only requires setting a DSN")
 }
+
+// TestConfig_Validate exercises the rules that previously deferred to the
+// database/sql layer at Connect time. Disabled configs (empty DSN) skip
+// validation; enabled configs need a driver name and non-negative pool
+// sizes.
+func TestConfig_Validate(t *testing.T) {
+	assert := asrt.New(t)
+
+	t.Run("disabled config skips validation", func(t *testing.T) {
+		cfg := DefaultConfig()
+		assert.NoError(cfg.Validate(), "default (disabled) config must validate")
+	})
+
+	t.Run("enabled with driver", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.DSN = "postgres://localhost/app"
+		assert.NoError(cfg.Validate())
+	})
+
+	t.Run("enabled without driver", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.Driver = ""
+		cfg.DSN = "postgres://localhost/app"
+		err := cfg.Validate()
+		assert.Error(err)
+		assert.Contains(err.Error(), "driver is required")
+	})
+
+	t.Run("negative MaxOpenConns", func(t *testing.T) {
+		cfg := DefaultConfig()
+		cfg.DSN = "postgres://localhost/app"
+		cfg.MaxOpenConns = -1
+		err := cfg.Validate()
+		assert.Error(err)
+		assert.Contains(err.Error(), "maxOpenConns")
+	})
+}

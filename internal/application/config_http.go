@@ -1,6 +1,8 @@
 package application
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -94,6 +96,66 @@ func (t *TlsConfig) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "key", &t.Key)
 	env.SetStringValue(prefix, "certificate_cache", &t.CertificateCache)
 	env.SetBoolValue(prefix, "use_acme_issuer", &t.UseAcmeIssuer)
+}
+
+// Validate verifies the HTTP listener config will produce a working server.
+// Port=0 is rejected because Echo will fail at listen time anyway and we'd
+// rather refuse early; negative timeouts trip Go's http.Server hard; bad
+// MaxBodySize would crash configureHttpServer at Initialize. Catching all
+// of these at Configure time means cmd/daemon/main.go exits non-zero before
+// any subsystem warms up.
+func (h *HttpConfig) Validate() error {
+	if h == nil {
+		return nil
+	}
+	var errs []error
+	if h.Port == 0 {
+		errs = append(errs, errors.New("port must be 1-65535"))
+	}
+	if h.ShutdownTimeout < 0 {
+		errs = append(errs, fmt.Errorf("shutdownTimeout must be non-negative, got %s", h.ShutdownTimeout))
+	}
+	if h.ReadTimeout < 0 {
+		errs = append(errs, fmt.Errorf("readTimeout must be non-negative, got %s", h.ReadTimeout))
+	}
+	if h.ReadHeaderTimeout < 0 {
+		errs = append(errs, fmt.Errorf("readHeaderTimeout must be non-negative, got %s", h.ReadHeaderTimeout))
+	}
+	if h.WriteTimeout < 0 {
+		errs = append(errs, fmt.Errorf("writeTimeout must be non-negative, got %s", h.WriteTimeout))
+	}
+	if h.IdleTimeout < 0 {
+		errs = append(errs, fmt.Errorf("idleTimeout must be non-negative, got %s", h.IdleTimeout))
+	}
+	if strings.TrimSpace(h.MaxBodySize) != "" {
+		if _, err := parseByteSize(h.MaxBodySize); err != nil {
+			errs = append(errs, fmt.Errorf("maxBodySize: %w", err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// Validate extends HttpConfig.Validate with TLS-specific checks. ACME without
+// a hostname can't issue a cert; partial cert/key config is ambiguous (either
+// both must be set for static certs, or both empty for auto-issuance).
+func (t *TlsConfig) Validate() error {
+	if t == nil || !t.Enabled {
+		return nil
+	}
+	var errs []error
+	if err := t.HttpConfig.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	certSet := strings.TrimSpace(t.Certificate) != ""
+	keySet := strings.TrimSpace(t.Key) != ""
+	if certSet != keySet {
+		errs = append(errs, errors.New("certificate and key must both be set for static TLS, or both empty for auto-issuance"))
+	}
+	if t.UseAcmeIssuer && strings.TrimSpace(t.Hostname) == "" {
+		errs = append(errs, errors.New("hostname is required when useAcmeIssuer=true (ACME challenge needs a routable name)"))
+	}
+	return errors.Join(errs...)
 }
 
 func DefaultHttpConfig() *HttpConfig {

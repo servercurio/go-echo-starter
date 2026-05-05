@@ -8,6 +8,9 @@
 package database
 
 import (
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -71,6 +74,33 @@ func (c *Config) MarshalZerologObject(e *zerolog.Event) {
 		Str("connMaxLifetime", c.ConnMaxLifetime.String()).
 		Str("connMaxIdleTime", c.ConnMaxIdleTime.String()).
 		Bool("enabled", c.Enabled())
+}
+
+// Validate enforces the rules sql.Open and the pool configuration would
+// surface later: enabled (DSN-set) configs need a driver name; pool-size
+// fields and connection-lifetime fields can't go negative. Disabled
+// configs (DSN empty) skip validation entirely.
+func (c *Config) Validate() error {
+	if c == nil || !c.Enabled() {
+		return nil
+	}
+	var errs []error
+	if strings.TrimSpace(c.Driver) == "" {
+		errs = append(errs, errors.New("database: driver is required when DSN is set"))
+	}
+	if c.MaxOpenConns < 0 {
+		errs = append(errs, fmt.Errorf("database: maxOpenConns must be non-negative, got %d", c.MaxOpenConns))
+	}
+	if c.MaxIdleConns < 0 {
+		errs = append(errs, fmt.Errorf("database: maxIdleConns must be non-negative, got %d", c.MaxIdleConns))
+	}
+	if c.ConnMaxLifetime < 0 {
+		errs = append(errs, fmt.Errorf("database: connMaxLifetime must be non-negative, got %s", c.ConnMaxLifetime))
+	}
+	if c.ConnMaxIdleTime < 0 {
+		errs = append(errs, fmt.Errorf("database: connMaxIdleTime must be non-negative, got %s", c.ConnMaxIdleTime))
+	}
+	return errors.Join(errs...)
 }
 
 // DefaultConfig returns a disabled-by-default Config. Set DSN (via config file

@@ -1,6 +1,8 @@
 package application
 
 import (
+	"fmt"
+
 	"github.com/rs/zerolog"
 	"github.com/servercurio/go-echo-starter/internal/env"
 )
@@ -58,6 +60,18 @@ func (c *SecurityConfig) MarshalZerologObject(e *zerolog.Event) {
 		Bool("hstsPreloadEnabled", c.HSTSPreloadEnabled).
 		Str("contentSecurityPolicy", c.ContentSecurityPolicy).
 		Str("referrerPolicy", c.ReferrerPolicy)
+}
+
+// Validate rejects nonsensical security-header values. HSTS max-age cannot
+// be negative; the Echo middleware would emit a malformed header otherwise.
+func (c *SecurityConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+	if c.HSTSMaxAge < 0 {
+		return fmt.Errorf("security: hstsMaxAge must be non-negative, got %d", c.HSTSMaxAge)
+	}
+	return nil
 }
 
 // DefaultSecurityConfig returns the starter's default header posture:
