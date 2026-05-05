@@ -25,7 +25,7 @@
       {
         "verifyReleaseCmd": "printf '%s' \"${nextRelease.version}\" > .release-version",
         "prepareCmd": "printf '%s' \"${nextRelease.version}\" > internal/version/version.txt && task generate",
-        "publishCmd": "task build && task sign"
+        "publishCmd": "task build && task sign && task sbom"
       }
     ],
     [
@@ -62,7 +62,9 @@
           { "path": "bin/appsvrd-windows-arm64", "label": "appsvrd-windows-arm64" },
           { "path": "bin/appsvrd-windows-arm64.sha256", "label": "appsvrd-windows-arm64.sha256" },
           { "path": "bin/appsvrd-windows-arm64.sha256.asc", "label": "appsvrd-windows-arm64.sha256.asc" },
-          { "path": "bin/appsvrd-windows-arm64.asc", "label": "appsvrd-windows-arm64.asc" }
+          { "path": "bin/appsvrd-windows-arm64.asc", "label": "appsvrd-windows-arm64.asc" },
+          { "path": "bin/sbom.json", "label": "sbom.json" },
+          { "path": "bin/sbom.xml", "label": "sbom.xml" }
         ]
       }
     ]
