@@ -67,6 +67,17 @@ jobs:
       - name: Run Unit Tests
         run: task test
 
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        with:
+          files: ./cover.out
+          flags: unittests
+          fail_ci_if_error: false
+          token: ${{ secrets.codecov-token }}
+
+      # Threshold gate runs *after* the codecov upload so a sub-threshold
+      # run still publishes its coverage to the Codecov dashboard before
+      # this step fails the workflow.
       - name: Enforce Coverage Threshold
         env:
           COVERAGE_THRESHOLD: ${{ inputs.coverage-threshold }}
@@ -85,11 +96,3 @@ jobs:
             echo "::error::Coverage ${pct}% is below the configured threshold of ${COVERAGE_THRESHOLD}%"
             exit 1
           }
-
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
-        with:
-          files: ./cover.out
-          flags: unittests
-          fail_ci_if_error: false
-          token: ${{ secrets.codecov-token }}
