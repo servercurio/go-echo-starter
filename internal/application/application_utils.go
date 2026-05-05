@@ -7,6 +7,10 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
+// resolveHomeDirectory looks up the current user's home directory and
+// stores it on the Application for later use (config search paths, autocert
+// cache fallback location). Falls back to "." with a warning when the
+// lookup fails — a missing home dir shouldn't take down the daemon.
 func (app *Application) resolveHomeDirectory() {
 	var err error
 

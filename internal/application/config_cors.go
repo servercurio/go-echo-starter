@@ -46,6 +46,9 @@ func (c *CorsConfig) Enabled() bool {
 	return c != nil && len(c.AllowOrigins) > 0
 }
 
+// FromEnv hydrates the CORS fields from environment variables under
+// prefix. List-valued fields (origins, methods, headers) are accepted as
+// comma-separated strings and split on the wire.
 func (c *CorsConfig) FromEnv(prefix string) {
 	var allowOrigins string
 	env.SetStringValue(prefix, "allow_origins", &allowOrigins)
@@ -69,6 +72,8 @@ func (c *CorsConfig) FromEnv(prefix string) {
 	env.SetIntValue(prefix, "max_age", &c.MaxAge)
 }
 
+// MarshalZerologObject writes the CORS configuration into e for the
+// startup-log notifier.
 func (c *CorsConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Strs("allowOrigins", c.AllowOrigins).
 		Strs("allowMethods", c.AllowMethods).
@@ -97,6 +102,9 @@ func (c *CorsConfig) Validate() error {
 	return nil
 }
 
+// DefaultCorsConfig returns an empty CORS policy — no origins, no
+// methods, no headers, credentials off. Effectively disables the CORS
+// middleware until the consumer opts in by populating AllowOrigins.
 func DefaultCorsConfig() *CorsConfig {
 	return &CorsConfig{
 		AllowOrigins:     []string{},
@@ -107,6 +115,9 @@ func DefaultCorsConfig() *CorsConfig {
 	}
 }
 
+// splitAndTrim splits s on commas, trims whitespace from each element, and
+// drops empty entries. Used to convert comma-separated env-var lists into
+// the slice-of-string form CORS uses internally.
 func splitAndTrim(s string) []string {
 	parts := strings.Split(s, ",")
 	out := make([]string, 0, len(parts))

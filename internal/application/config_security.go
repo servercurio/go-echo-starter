@@ -46,6 +46,8 @@ type SecurityConfig struct {
 	ReferrerPolicy string `yaml:"referrerPolicy" json:"referrerPolicy"`
 }
 
+// FromEnv hydrates the security-headers fields from environment variables
+// under prefix.
 func (c *SecurityConfig) FromEnv(prefix string) {
 	env.SetIntValue(prefix, "hsts_max_age", &c.HSTSMaxAge)
 	env.SetBoolValue(prefix, "hsts_exclude_subdomains", &c.HSTSExcludeSubdomains)
@@ -54,6 +56,8 @@ func (c *SecurityConfig) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "referrer_policy", &c.ReferrerPolicy)
 }
 
+// MarshalZerologObject writes the security-headers configuration into e
+// for the startup-log notifier.
 func (c *SecurityConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Int("hstsMaxAge", c.HSTSMaxAge).
 		Bool("hstsExcludeSubdomains", c.HSTSExcludeSubdomains).

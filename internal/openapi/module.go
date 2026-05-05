@@ -10,6 +10,8 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/router"
 )
 
+// Content types and URL paths for the served OpenAPI spec. Extracted so the
+// route registrations and handlers stay in lock-step.
 const (
 	yamlContentType = "application/yaml; charset=utf-8"
 	jsonContentType = "application/json; charset=utf-8"

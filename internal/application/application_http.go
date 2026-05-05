@@ -16,6 +16,11 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
+// configureHttpServer wires the global middleware, optional CORS, body-size
+// limit, and HTTPS-redirect onto app.httpServer, and silences the default
+// Echo logger (we route everything through zerolog instead). Returns an
+// error only when MaxBodySize fails to parse — every other step is
+// configuration-driven and can't fail at this stage.
 func (app *Application) configureHttpServer() error {
 	app.httpServer.Use(app.middleware...)
 
@@ -38,6 +43,12 @@ func (app *Application) configureHttpServer() error {
 	return nil
 }
 
+// startHttpServer launches the HTTP listener and blocks until ctx cancels
+// (or the server returns an unexpected error). When MaxConnections is
+// configured, the listener is wrapped with netutil.LimitListener so excess
+// connections queue rather than overwhelming the server. Logs and returns
+// on listen errors; http.ErrServerClosed during a normal shutdown is
+// suppressed.
 func (app *Application) startHttpServer(ctx context.Context) {
 	address := fmt.Sprintf("%s:%d", app.config.Server.Http.BindAddress, app.config.Server.Http.Port)
 	logging.Daemon.Info().

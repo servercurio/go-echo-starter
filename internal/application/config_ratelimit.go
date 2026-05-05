@@ -57,6 +57,8 @@ func (c *RateLimitConfig) Configured() bool {
 	return c != nil && (c.Enabled || c.MaxConnections > 0)
 }
 
+// FromEnv hydrates the rate-limit fields from environment variables under
+// prefix.
 func (c *RateLimitConfig) FromEnv(prefix string) {
 	env.SetBoolValue(prefix, "enabled", &c.Enabled)
 	env.SetFloatValue(prefix, "rate", &c.Rate)
@@ -65,6 +67,8 @@ func (c *RateLimitConfig) FromEnv(prefix string) {
 	env.SetIntValue(prefix, "max_connections", &c.MaxConnections)
 }
 
+// MarshalZerologObject writes the rate-limit configuration into e for the
+// startup-log notifier.
 func (c *RateLimitConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Bool("enabled", c.Enabled).
 		Float64("rate", c.Rate).

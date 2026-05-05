@@ -16,6 +16,9 @@ import (
 // negotiation belongs in a future With…ContentType-style overload.
 const defaultContentType = "application/json"
 
+// Standard is the canonical router.Endpoint implementation: an HTTP handler
+// plus the OpenAPI metadata (summary, description, request/response shapes)
+// the spec generator reads at build time. Construct via New + Option helpers.
 type Standard struct {
 	id          string
 	name        string
@@ -29,34 +32,49 @@ type Standard struct {
 	responses   map[int]router.ResponseSpec
 }
 
+// Id returns the endpoint's stable identifier (used as the OpenAPI
+// operationId).
 func (e *Standard) Id() string {
 	return e.id
 }
 
+// Name returns the endpoint's human-readable name.
 func (e *Standard) Name() string {
 	return e.name
 }
 
+// Methods returns the HTTP methods the endpoint responds to, deduplicated
+// and sorted (the order is the slice order returned by New).
 func (e *Standard) Methods() []string {
 	return e.methods
 }
 
+// Middleware returns the per-endpoint middleware chain in registration
+// order.
 func (e *Standard) Middleware() []echo.MiddlewareFunc {
 	return e.middleware
 }
 
+// Summary returns the OpenAPI operation summary set via WithSummary, or "".
 func (e *Standard) Summary() string {
 	return e.summary
 }
 
+// Description returns the OpenAPI operation description set via
+// WithDescription, or "".
 func (e *Standard) Description() string {
 	return e.description
 }
 
+// Request returns the OpenAPI request body spec set via WithRequest, or nil
+// when the endpoint declares no body.
 func (e *Standard) Request() *router.RequestSpec {
 	return e.request
 }
 
+// Responses returns the OpenAPI response specs keyed by HTTP status code.
+// Returns a freshly-allocated empty map (never nil) when no responses are
+// declared, so callers don't need to nil-guard.
 func (e *Standard) Responses() map[int]router.ResponseSpec {
 	if e.responses == nil {
 		return map[int]router.ResponseSpec{}
@@ -64,6 +82,8 @@ func (e *Standard) Responses() map[int]router.ResponseSpec {
 	return e.responses
 }
 
+// AttachGroup binds the endpoint to an *echo.Group. No-op when group is nil
+// or the endpoint has already been attached.
 func (e *Standard) AttachGroup(group *echo.Group) {
 	if group == nil || e.group != nil {
 		return
@@ -72,6 +92,9 @@ func (e *Standard) AttachGroup(group *echo.Group) {
 	e.group = group
 }
 
+// HandleRequest invokes the registered handler. Returns 501 Not Implemented
+// when no handler has been attached, so an Endpoint declared for OpenAPI
+// purposes alone fails predictably rather than panicking.
 func (e *Standard) HandleRequest(c *echo.Context) error {
 	if e.handler == nil {
 		return c.NoContent(http.StatusNotImplemented)
@@ -80,10 +103,15 @@ func (e *Standard) HandleRequest(c *echo.Context) error {
 	return e.handler(c)
 }
 
+// Group returns the *echo.Group the endpoint is attached to, or nil before
+// AttachGroup has been called.
 func (e *Standard) Group() *echo.Group {
 	return e.group
 }
 
+// New returns a Standard endpoint with the given id and name, configured by
+// the supplied Options. Method registrations from With*Method calls are
+// deduplicated before the constructor returns.
 func New(id, name string, options ...Option) *Standard {
 	std := &Standard{
 		id:         id,
@@ -134,54 +162,63 @@ func WithMethods(methods ...string) Option {
 	}
 }
 
+// WithGetMethod registers the endpoint to respond to HTTP GET.
 func WithGetMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodGet)
 	}
 }
 
+// WithPostMethod registers the endpoint to respond to HTTP POST.
 func WithPostMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodPost)
 	}
 }
 
+// WithPutMethod registers the endpoint to respond to HTTP PUT.
 func WithPutMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodPut)
 	}
 }
 
+// WithDeleteMethod registers the endpoint to respond to HTTP DELETE.
 func WithDeleteMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodDelete)
 	}
 }
 
+// WithPatchMethod registers the endpoint to respond to HTTP PATCH.
 func WithPatchMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodPatch)
 	}
 }
 
+// WithOptionsMethod registers the endpoint to respond to HTTP OPTIONS.
 func WithOptionsMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodOptions)
 	}
 }
 
+// WithHeadMethod registers the endpoint to respond to HTTP HEAD.
 func WithHeadMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodHead)
 	}
 }
 
+// WithTraceMethod registers the endpoint to respond to HTTP TRACE.
 func WithTraceMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodTrace)
 	}
 }
 
+// WithConnectMethod registers the endpoint to respond to HTTP CONNECT.
 func WithConnectMethod() Option {
 	return func(e *Standard) {
 		e.methods = append(e.methods, http.MethodConnect)

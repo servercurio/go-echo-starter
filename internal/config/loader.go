@@ -12,6 +12,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// FromPaths searches each path in paths for a config file matching name (with
+// the extensions returned by FileNameVariants) and unmarshals every match
+// into cfg in the order found, so later paths override earlier ones. Missing
+// directories or files are skipped silently; an unmarshal error is returned
+// with a stack trace.
 func FromPaths(cfg interface{}, name string, paths ...string) error {
 	if name == "" {
 		return ex.IllegalArgument.New("name is empty")
@@ -63,6 +68,11 @@ func FromPaths(cfg interface{}, name string, paths ...string) error {
 	return nil
 }
 
+// FromFile reads the file at the given path and unmarshals it into cfg using
+// YAML or JSON based on the file extension. Returns errors.IllegalFileFormat
+// for unsupported extensions or malformed content, errors.InvalidFilePath
+// when the path resolves to a directory, and a wrapped errorx for I/O
+// failures.
 func FromFile(cfg interface{}, file string) error {
 	file = strings.TrimSpace(file)
 

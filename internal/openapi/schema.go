@@ -55,6 +55,9 @@ func (r *SchemaRegistry) SchemaFor(t reflect.Type) *Schema {
 	return r.schemaFor(t)
 }
 
+// schemaFor is the recursive worker behind SchemaFor. Handles pointer,
+// time.Time, primitive, container, and struct cases; structs delegate to
+// structSchema for the named-vs-anonymous split.
 func (r *SchemaRegistry) schemaFor(t reflect.Type) *Schema {
 	// Pointer wrapper: emit the pointee's schema with nullable=true.
 	// Repeated wraps collapse — reflect handles that for us.

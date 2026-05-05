@@ -13,7 +13,11 @@ import (
 type Format string
 
 const (
+	// FormatJSON serializes the health Report as JSON (the default).
 	FormatJSON Format = "json"
+
+	// FormatYAML serializes the health Report as YAML, selected when the
+	// client's Accept header explicitly mentions a yaml media type.
 	FormatYAML Format = "yaml"
 )
 

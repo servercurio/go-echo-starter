@@ -5,6 +5,10 @@ import (
 	mw "github.com/labstack/echo/v5/middleware"
 )
 
+// EchoMiddleware returns an Echo v5 middleware that emits one structured
+// access-log event per request to the package-level Access logger.
+// Successful responses log at info; responses carrying an error log at
+// error with the underlying error attached.
 func EchoMiddleware() echo.MiddlewareFunc {
 	return mw.RequestLoggerWithConfig(mw.RequestLoggerConfig{
 		LogMethod:        true,

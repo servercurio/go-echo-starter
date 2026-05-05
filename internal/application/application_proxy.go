@@ -36,6 +36,12 @@ func (app *Application) configureProxySupport() error {
 	return nil
 }
 
+// resolveProxyTrustOptions builds the slice of echo.TrustOption values
+// passed to ExtractIPFromRealIPHeader / ExtractIPFromXFFHeader. Configured
+// CIDRs are validated; invalid entries are dropped with a warn-level log
+// rather than refused outright (we already validate at Configure time, so
+// anything bad here is a runtime regression worth surfacing). Loopback,
+// private, and link-local nets are always trusted.
 func (app *Application) resolveProxyTrustOptions() []echo.TrustOption {
 	pc := app.config.Proxy
 	if pc == nil {

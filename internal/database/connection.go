@@ -10,9 +10,17 @@ import (
 	"github.com/joomcode/errorx"
 )
 
+// connectPingTimeout caps the initial reachability probe Connect runs after
+// sql.Open. Short enough that a misconfigured DSN fails the daemon's boot
+// quickly; long enough to absorb transient cold-start latency.
 const connectPingTimeout = 5 * time.Second
 
+// dbConn is the package-wide *sql.DB singleton populated by Connect and
+// returned by Connection.
 var dbConn *sql.DB
+
+// m guards Connect / Disconnect / Connection so concurrent boot-time and
+// shutdown paths don't race on dbConn.
 var m sync.Mutex
 
 // Connection returns the shared *sql.DB singleton, or nil if Connect has not

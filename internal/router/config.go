@@ -16,6 +16,8 @@ type Config struct {
 	HealthRegistry *health.Registry
 }
 
+// NewConfig returns a router Config with a fresh, empty health.Registry so
+// callers can use the value as-is without nil-guarding HealthRegistry.
 func NewConfig() *Config {
 	return &Config{
 		HealthRegistry: health.NewRegistry(),

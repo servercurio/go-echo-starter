@@ -58,6 +58,8 @@ type CsrfConfig struct {
 	CookieSameSite string `yaml:"cookieSameSite" json:"cookieSameSite"`
 }
 
+// FromEnv hydrates the CSRF fields from environment variables under
+// prefix (e.g. <prefix>_ENABLED, <prefix>_TOKEN_LOOKUP).
 func (c *CsrfConfig) FromEnv(prefix string) {
 	env.SetBoolValue(prefix, "enabled", &c.Enabled)
 	env.SetStringValue(prefix, "token_lookup", &c.TokenLookup)
@@ -70,6 +72,8 @@ func (c *CsrfConfig) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "cookie_same_site", &c.CookieSameSite)
 }
 
+// MarshalZerologObject writes the CSRF configuration into e for the
+// startup-log notifier.
 func (c *CsrfConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Bool("enabled", c.Enabled).
 		Str("tokenLookup", c.TokenLookup).
@@ -134,8 +138,12 @@ func parseSameSite(s string) (http.SameSite, error) {
 	}
 }
 
+// sameSiteError carries the original (unrecognised) SameSite string back
+// to Validate so the operator-facing error message contains the value
+// they actually typed.
 type sameSiteError struct{ value string }
 
+// Error implements the error interface.
 func (e *sameSiteError) Error() string {
 	return "csrf: cookieSameSite must be one of {default, lax, strict, none}, got " + e.value
 }

@@ -51,6 +51,8 @@ type SwaggerConfig struct {
 	SpecURL string `yaml:"specUrl" json:"specUrl"`
 }
 
+// FromEnv hydrates the OpenAPI fields from environment variables under
+// prefix and recurses into the Swagger sub-config.
 func (c *OpenAPIConfig) FromEnv(prefix string) {
 	env.SetBoolValue(prefix, "enabled", &c.Enabled)
 	env.SetStringValue(prefix, "title", &c.Title)
@@ -59,6 +61,8 @@ func (c *OpenAPIConfig) FromEnv(prefix string) {
 	c.Swagger.FromEnv(env.AddPrefix(prefix, "swagger"))
 }
 
+// FromEnv hydrates the Swagger UI fields from environment variables under
+// prefix.
 func (c *SwaggerConfig) FromEnv(prefix string) {
 	env.SetBoolValue(prefix, "enabled", &c.Enabled)
 	env.SetStringValue(prefix, "path", &c.Path)

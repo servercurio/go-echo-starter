@@ -10,6 +10,10 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
+// ProxyConfig captures the IP-extraction policy the daemon applies when
+// it sits behind a reverse proxy or load balancer. The three Use* flags
+// are mutually exclusive (see Validate); TrustedIPRanges narrows which
+// upstreams the chosen extractor will believe.
 type ProxyConfig struct {
 	UseDirectIP      bool     `yaml:"useDirectIP" json:"useDirectIP"`
 	UseXFFHeader     bool     `yaml:"useXFFHeader" json:"useXFFHeader"`
@@ -17,6 +21,9 @@ type ProxyConfig struct {
 	TrustedIPRanges  []string `yaml:"trustedIPRanges" json:"trustedIPRanges"`
 }
 
+// FromEnv hydrates the proxy fields from environment variables under
+// prefix. TrustedIPRanges accepts a comma-separated list of CIDR ranges;
+// invalid entries are dropped with a warn-level log.
 func (c *ProxyConfig) FromEnv(prefix string) {
 	env.SetBoolValue(prefix, "use_direct_ip", &c.UseDirectIP)
 	env.SetBoolValue(prefix, "use_xff_header", &c.UseXFFHeader)
@@ -76,6 +83,8 @@ func (c *ProxyConfig) Validate() error {
 	return nil
 }
 
+// MarshalZerologObject writes the proxy configuration into e for the
+// startup-log notifier.
 func (c *ProxyConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Bool("useDirectIP", c.UseDirectIP).
 		Bool("useXFFHeader", c.UseXFFHeader).
@@ -83,6 +92,9 @@ func (c *ProxyConfig) MarshalZerologObject(e *zerolog.Event) {
 		Strs("trustedIPRanges", c.TrustedIPRanges)
 }
 
+// DefaultProxyConfig returns the starter's proxy defaults: trust the
+// direct connection IP only (no header-based extraction), no extra
+// trusted CIDRs.
 func DefaultProxyConfig() *ProxyConfig {
 	return &ProxyConfig{
 		UseDirectIP:      true,
