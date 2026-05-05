@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// obMask is the single-character glyph repeated to fill the masked portion
+// of a value.
 const obMask = "*"
 
 // ConcealPrefix replaces all but the last revealChars characters of a string.
@@ -42,6 +44,8 @@ func ConcealUriCredential(s string) string {
 	return uri.String()
 }
 
+// repeat returns s concatenated count times, or the empty string when count
+// is zero or negative.
 func repeat(s string, count int) string {
 	if count <= 0 {
 		return ""

@@ -2,6 +2,9 @@ package router
 
 import "github.com/labstack/echo/v5"
 
+// Module groups Routes and SubModules under a shared URI prefix and middleware
+// stack. The Application registers top-level Modules during Initialize; each
+// Module attaches itself to an *echo.Group when AttachGroup is called.
 type Module interface {
 	// Id is the unique identifier for this module.
 	Id() string

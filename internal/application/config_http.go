@@ -10,6 +10,10 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/env"
 )
 
+// HttpConfig captures the HTTP listener parameters: bind address, port,
+// timeouts, and a max body size. Used as the standalone HTTP server
+// config and embedded as the base of TlsConfig so the TLS listener
+// inherits the same timeout knobs.
 type HttpConfig struct {
 	Hostname          string        `yaml:"hostname" json:"hostname"`
 	BindAddress       string        `yaml:"bindAddress" json:"bindAddress"`
@@ -22,6 +26,10 @@ type HttpConfig struct {
 	MaxBodySize       string        `yaml:"maxBodySize" json:"maxBodySize"`
 }
 
+// MarshalZerologObject writes the HTTP listener configuration into e for
+// the structured-startup-log notifier. BindAddress is normalised to
+// "0.0.0.0" when blank so the log line shows what the kernel will actually
+// bind to.
 func (h *HttpConfig) MarshalZerologObject(e *zerolog.Event) {
 	ba := h.BindAddress
 
@@ -40,6 +48,8 @@ func (h *HttpConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("maxBodySize", h.MaxBodySize)
 }
 
+// FromEnv hydrates the HTTP listener fields from environment variables
+// under prefix (e.g. <prefix>_PORT, <prefix>_READ_TIMEOUT).
 func (h *HttpConfig) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "hostname", &h.Hostname)
 	env.SetStringValue(prefix, "bind_address", &h.BindAddress)
@@ -52,6 +62,9 @@ func (h *HttpConfig) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "max_body_size", &h.MaxBodySize)
 }
 
+// TlsConfig captures the TLS listener configuration. Embeds HttpConfig so
+// the same timeout/body-size knobs apply, and adds cert-source fields
+// (static cert/key file paths, ACME cache, ACME-vs-ephemeral toggle).
 type TlsConfig struct {
 	*HttpConfig
 
@@ -70,6 +83,10 @@ type TlsConfig struct {
 	UseAcmeIssuer bool `yaml:"useAcmeIssuer" json:"useAcmeIssuer"`
 }
 
+// MarshalZerologObject writes the TLS listener configuration into e for
+// the startup-log notifier. The certificate and key file paths are only
+// emitted when statically configured; the autocert cache and ACME toggle
+// only when auto-issuance applies.
 func (t *TlsConfig) MarshalZerologObject(e *zerolog.Event) {
 	autoCertIssuance := strings.TrimSpace(t.Certificate) == "" || strings.TrimSpace(t.Key) == ""
 
@@ -86,6 +103,8 @@ func (t *TlsConfig) MarshalZerologObject(e *zerolog.Event) {
 	}
 }
 
+// FromEnv hydrates the TLS listener fields from environment variables
+// under prefix, plus the embedded HttpConfig fields under the same prefix.
 func (t *TlsConfig) FromEnv(prefix string) {
 	t.HttpConfig.FromEnv(prefix)
 	env.SetBoolValue(prefix, "enabled", &t.Enabled)
@@ -155,6 +174,9 @@ func (t *TlsConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
+// DefaultHttpConfig returns the starter's HTTP listener defaults: bind to
+// every interface, port 8080, conservative read/write/idle timeouts, 1MB
+// max body.
 func DefaultHttpConfig() *HttpConfig {
 	return &HttpConfig{
 		BindAddress:       "",
@@ -168,6 +190,9 @@ func DefaultHttpConfig() *HttpConfig {
 	}
 }
 
+// DefaultTlsConfig returns the starter's TLS listener defaults: disabled
+// by default, port 8443 when enabled, no certificates configured (so the
+// daemon falls into the auto-issuance path).
 func DefaultTlsConfig() *TlsConfig {
 	return &TlsConfig{
 		HttpConfig: &HttpConfig{

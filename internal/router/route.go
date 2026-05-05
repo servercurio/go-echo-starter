@@ -2,6 +2,9 @@ package router
 
 import "github.com/labstack/echo/v5"
 
+// Route describes a single addressable URI under a Module: a path, the HTTP
+// methods that respond to it (via its Endpoints), and any per-route
+// middleware. Implementations are typically built with internal/api/std/route.
 type Route interface {
 	// Id returns the unique identifier of the route.
 	Id() string

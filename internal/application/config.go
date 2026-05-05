@@ -8,6 +8,9 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
+// Config is the daemon's top-level configuration aggregate. Each field is
+// owned by the corresponding subsystem, with this type acting as the wiring
+// node that fans environment-variable hydration and validation out to each.
 type Config struct {
 	Logging  *logging.Config  `yaml:"logging" json:"logging"`
 	Server   *ServerConfig    `yaml:"server" json:"server"`
@@ -16,6 +19,8 @@ type Config struct {
 	OpenAPI  *OpenAPIConfig   `yaml:"openapi" json:"openapi"`
 }
 
+// FromEnv hydrates each subsystem config from environment variables under
+// the corresponding child prefix (e.g. <prefix>_SERVER_*, <prefix>_PROXY_*).
 func (c *Config) FromEnv(prefix string) {
 	c.Logging.FromEnv(prefix)
 	c.Server.FromEnv(env.AddPrefix(prefix, "server"))
@@ -42,6 +47,9 @@ func (c *Config) Validate() error {
 	)
 }
 
+// DefaultConfig returns a Config populated with each subsystem's defaults.
+// The result is suitable for handing straight to NewApplication when no
+// config files or env vars are available.
 func DefaultConfig() *Config {
 	return &Config{
 		Logging:  logging.DefaultLoggingConfig(),

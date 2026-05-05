@@ -8,6 +8,9 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/router"
 )
 
+// Standard is the canonical router.Module implementation. Routes and
+// sub-modules are keyed by id so duplicate registrations are idempotent;
+// AttachGroup wires everything onto a supplied *echo.Group exactly once.
 type Standard struct {
 	id         string
 	name       string
@@ -18,10 +21,12 @@ type Standard struct {
 	group      *echo.Group
 }
 
+// Id returns the module's stable identifier.
 func (m *Standard) Id() string {
 	return m.id
 }
 
+// Name returns the module's human-readable name (used as the OpenAPI tag).
 func (m *Standard) Name() string {
 	return m.name
 }
@@ -47,6 +52,9 @@ func (m *Standard) Prefix() string {
 	return router.PathSeparator + trimmed
 }
 
+// Routes returns the module's directly-registered routes in unspecified
+// order. The slice is freshly allocated; the caller may mutate it without
+// affecting the module.
 func (m *Standard) Routes() []router.Route {
 	var ret []router.Route
 	for _, v := range m.routes {
@@ -55,6 +63,9 @@ func (m *Standard) Routes() []router.Route {
 	return ret
 }
 
+// SubModules returns the module's nested sub-modules in unspecified order.
+// The slice is freshly allocated; the caller may mutate it without affecting
+// the module.
 func (m *Standard) SubModules() []router.Module {
 	var ret []router.Module
 	for _, v := range m.modules {
@@ -63,18 +74,25 @@ func (m *Standard) SubModules() []router.Module {
 	return ret
 }
 
+// HasRoutes reports whether the module has any directly-registered routes.
 func (m *Standard) HasRoutes() bool {
 	return len(m.routes) > 0
 }
 
+// HasSubModules reports whether the module has any registered sub-modules.
 func (m *Standard) HasSubModules() bool {
 	return len(m.modules) > 0
 }
 
+// Middleware returns the module-level middleware chain in registration
+// order.
 func (m *Standard) Middleware() []echo.MiddlewareFunc {
 	return m.middleware
 }
 
+// AttachGroup binds the module to an *echo.Group, recursively attaching
+// sub-modules and routes. No-op when group is nil or the module has already
+// been attached, so re-registration is safe.
 func (m *Standard) AttachGroup(group *echo.Group) {
 	if group == nil || m.group != nil {
 		return
@@ -102,12 +120,18 @@ func (m *Standard) AttachGroup(group *echo.Group) {
 	}
 }
 
+// Group returns the *echo.Group the module is attached to, or nil before
+// AttachGroup has been called.
 func (m *Standard) Group() *echo.Group {
 	return m.group
 }
 
+// Option configures a Standard during New. Used as a functional-options
+// builder so module construction stays composable.
 type Option func(m *Standard)
 
+// New returns a router.Module backed by Standard with the given id, name,
+// and URL prefix, configured by the supplied Options.
 func New(id, name, prefix string, opts ...Option) router.Module {
 	m := &Standard{
 		id:         id,
@@ -125,6 +149,8 @@ func New(id, name, prefix string, opts ...Option) router.Module {
 	return m
 }
 
+// WithMiddleware appends one or more middleware functions to the module's
+// middleware chain. Multiple calls accumulate in registration order.
 func WithMiddleware(mw ...echo.MiddlewareFunc) Option {
 	return func(m *Standard) {
 		if m.middleware == nil {
@@ -135,6 +161,9 @@ func WithMiddleware(mw ...echo.MiddlewareFunc) Option {
 	}
 }
 
+// WithRoutes registers one or more routes on the module, keyed by id.
+// Repeated registrations of the same id are ignored, so callers can merge
+// default + override sets safely.
 func WithRoutes(routes ...router.Route) Option {
 	return func(m *Standard) {
 		if m.routes == nil {
@@ -149,6 +178,8 @@ func WithRoutes(routes ...router.Route) Option {
 	}
 }
 
+// WithSubModules registers one or more sub-modules on the module, keyed by
+// id. Repeated registrations of the same id are ignored.
 func WithSubModules(modules ...router.Module) Option {
 	return func(m *Standard) {
 		if m.modules == nil {

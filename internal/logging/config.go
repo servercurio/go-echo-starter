@@ -15,6 +15,8 @@ type Config struct {
 	HttpAccess *LoggerConfig `yaml:"httpAccess" json:"httpAccess"`
 }
 
+// FromEnv hydrates Daemon and HttpAccess from environment variables prefixed
+// "<prefix>_DAEMON_LOG_*" and "<prefix>_HTTP_ACCESS_LOG_*" respectively.
 func (c *Config) FromEnv(prefix string) {
 	c.Daemon.FromEnv(env.AddPrefix(prefix, "daemon_log"))
 	c.HttpAccess.FromEnv(env.AddPrefix(prefix, "http_access_log"))
@@ -35,6 +37,9 @@ type LoggerConfig struct {
 	IncludeCaller bool `yaml:"includeCaller" json:"includeCaller"`
 }
 
+// MarshalZerologObject implements zerolog.LogObjectMarshaler so a
+// LoggerConfig can be embedded in a structured log event via .EmbedObject(),
+// used by the startup notifications.
 func (l *LoggerConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Bool("enabled", l.Enabled)
 	e.Str("logLevel", strings.ToLower(l.Level))
@@ -42,6 +47,9 @@ func (l *LoggerConfig) MarshalZerologObject(e *zerolog.Event) {
 	e.Bool("includeCaller", l.IncludeCaller)
 }
 
+// FromEnv reads the standard logger keys (enabled, level, pretty_print,
+// include_caller) under prefix and applies any present values to the
+// receiver.
 func (l *LoggerConfig) FromEnv(prefix string) {
 	env.SetBoolValue(prefix, "enabled", &l.Enabled)
 	env.SetStringValue(prefix, "level", &l.Level)
@@ -82,6 +90,9 @@ func (l *LoggerConfig) Validate(name string) error {
 	return nil
 }
 
+// DefaultLoggingConfig returns a Config with daemon logging enabled at info
+// with pretty-printing on, and HTTP access logging disabled by default
+// (callers typically toggle it via env vars in production).
 func DefaultLoggingConfig() *Config {
 	return &Config{
 		Daemon:     NewLoggerConfig(zerolog.LevelInfoValue, true, false, true),
@@ -89,6 +100,9 @@ func DefaultLoggingConfig() *Config {
 	}
 }
 
+// NewConfigFromEnv returns a defaults-then-env-override Config: starts from
+// DefaultLoggingConfig and applies any matching environment variables under
+// prefix.
 func NewConfigFromEnv(prefix string) *Config {
 	cfg := DefaultLoggingConfig()
 	cfg.FromEnv(prefix)
@@ -96,6 +110,9 @@ func NewConfigFromEnv(prefix string) *Config {
 	return cfg
 }
 
+// NewLoggerConfig builds a LoggerConfig with the given level (coerced to
+// "info" if empty or unrecognised so callers don't have to validate
+// upstream), pretty-print, caller-info, and enabled flags.
 func NewLoggerConfig(level string, prettyPrint, includeCaller, enabled bool) *LoggerConfig {
 	level = strings.ToLower(strings.TrimSpace(level))
 	if level == "" || !isValidLevel(level) {
@@ -110,6 +127,7 @@ func NewLoggerConfig(level string, prettyPrint, includeCaller, enabled bool) *Lo
 	}
 }
 
+// isValidLevel reports whether level is a name zerolog can parse.
 func isValidLevel(level string) bool {
 	if _, err := zerolog.ParseLevel(level); err == nil {
 		return true
@@ -118,6 +136,8 @@ func isValidLevel(level string) bool {
 	return false
 }
 
+// parseLevel returns the zerolog.Level for the given name, or zerolog.NoLevel
+// when the name is not recognised.
 func parseLevel(level string) zerolog.Level {
 	if l, err := zerolog.ParseLevel(level); err == nil {
 		return l

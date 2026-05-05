@@ -26,6 +26,10 @@ type ResponseSpec struct {
 	Description string
 }
 
+// Endpoint is a single HTTP-method handler attached to a Route. Endpoints
+// carry their own OpenAPI metadata (summary, description, request/response
+// shapes) so the spec generator at internal/openapi can derive schemas
+// without a separate annotation grammar.
 type Endpoint interface {
 	// Id returns the unique identifier of the endpoint.
 	Id() string

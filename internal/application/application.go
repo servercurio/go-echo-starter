@@ -16,11 +16,20 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/router"
 )
 
-const defaultName = "appsvrd"
-const defaultEnvPrefix = "APP"
-const defaultConfigName = "appsvrd"
-const defaultConfigPathElement = "appsvr"
+// Default daemon identity strings. Embedded into Application by
+// NewApplication; cmd/daemon overrides them on the returned value when the
+// downstream binary needs a different name or env-var prefix.
+const (
+	defaultName              = "appsvrd"
+	defaultEnvPrefix         = "APP"
+	defaultConfigName        = "appsvrd"
+	defaultConfigPathElement = "appsvr"
+)
 
+// Application is the daemon's top-level lifecycle owner: it holds the loaded
+// configuration, the HTTP and TLS Echo servers, the registered modules, the
+// shared health registry, and the readiness flag toggled by Start /
+// shutdown. The zero value is not usable — construct via NewApplication.
 type Application struct {
 	Name              string
 	ConfigFileName    string
@@ -46,6 +55,10 @@ func (app *Application) IsReady() bool {
 	return app.ready.Load()
 }
 
+// NewApplication returns an Application initialised with sensible defaults
+// (name, env prefix, both Echo servers constructed, health registry and
+// module map empty). Logging is brought up early using env-var-resolved
+// settings so subsequent boot steps can emit structured logs immediately.
 func NewApplication(cfg *Config) *Application {
 	app := &Application{
 		Name:              defaultName,
@@ -114,6 +127,11 @@ func (app *Application) buildMiddleware() {
 	}
 }
 
+// Configure loads configuration from /etc, the user's home directory, and
+// the working directory (in that order, so later sources override earlier
+// ones), applies env-var overrides, emits the resolved config to the daemon
+// log, and runs Validate. Returns the joined validation error so the daemon
+// can refuse to boot with a single message listing every issue.
 func (app *Application) Configure() error {
 	configLocations := configSearchPaths()
 
@@ -157,6 +175,12 @@ func (app *Application) Configure() error {
 	return nil
 }
 
+// Initialize stands up every subsystem in the correct order: home dir,
+// middleware chain, HTTP/TLS servers, proxy IP-extractor, database (when
+// enabled), health checks, OpenAPI module (when enabled), and finally
+// routing for every module the caller has registered. Each step logs and
+// returns on hard failure; soft failures (proxy, routing) are demoted to
+// warnings so the daemon still serves what it can.
 func (app *Application) Initialize() error {
 	app.resolveHomeDirectory()
 
@@ -197,6 +221,11 @@ func (app *Application) Initialize() error {
 	return nil
 }
 
+// RegisterModule adds a top-level routing module to the Application. Must be
+// called before Initialize attaches modules to Echo (or, for modules
+// registered by Initialize itself like openapi/swagger, before the next
+// Initialize phase consumes them). Rejects nil and refuses to overwrite an
+// existing registration with the same Name.
 func (app *Application) RegisterModule(m router.Module) error {
 	if m == nil {
 		return errorx.IllegalArgument.New("module argument must not be nil")
@@ -215,6 +244,13 @@ func (app *Application) RegisterModule(m router.Module) error {
 	return nil
 }
 
+// Start brings up the HTTP and TLS server goroutines, flips the readiness
+// flag, then blocks until one of the configured shutdown signals arrives.
+// On shutdown it cancels both servers, waits for them to drain (bounded by
+// the larger of the two ShutdownTimeouts plus a five-second grace), closes
+// the database connection, and returns. The int return is the suggested
+// process exit code; today it's always 0 unless an unrecoverable error
+// surfaced upstream.
 func (app *Application) Start() (int, error) {
 	signalCtx, signalCancel :=
 		signal.NotifyContext(context.Background(), shutdownSignals...)

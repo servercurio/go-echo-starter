@@ -6,6 +6,9 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/env"
 )
 
+// ServerConfig groups every server-facing configuration block: the HTTP
+// and TLS listeners and the cross-cutting policies (CORS, security
+// headers, CSRF, rate limiting) layered over them.
 type ServerConfig struct {
 	Http      *HttpConfig      `yaml:"http" json:"http"`
 	Https     *TlsConfig       `yaml:"https" json:"https"`
@@ -15,6 +18,8 @@ type ServerConfig struct {
 	RateLimit *RateLimitConfig `yaml:"rateLimit" json:"rateLimit"`
 }
 
+// FromEnv fans out env-var hydration to each child config under its
+// corresponding sub-prefix.
 func (c *ServerConfig) FromEnv(prefix string) {
 	c.Http.FromEnv(env.AddPrefix(prefix, "http"))
 	c.Https.FromEnv(env.AddPrefix(prefix, "https"))
@@ -41,6 +46,9 @@ func (c *ServerConfig) Validate() error {
 	)
 }
 
+// DefaultServerConfig returns a ServerConfig populated with each child's
+// defaults: HTTP enabled, HTTPS off, CORS empty, security headers at
+// Mozilla's "A" baseline, CSRF off, rate limit off.
 func DefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
 		Http:      DefaultHttpConfig(),

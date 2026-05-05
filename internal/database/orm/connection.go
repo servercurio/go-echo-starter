@@ -1,9 +1,3 @@
-// Package orm provides the Bun ORM singleton wired to the application's
-// shared *sql.DB. Call Configure() once after database.Connect has succeeded,
-// then use Database() anywhere a *bun.DB is needed.
-//
-// This package intentionally exposes no domain models — add struct types in
-// sibling files as the application's schema grows.
 package orm
 
 import (
@@ -17,7 +11,12 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// db is the package-wide *bun.DB singleton populated by Configure and
+// returned by Database.
 var db *bun.DB
+
+// m guards Configure / Reset / Database so concurrent boot-time and shutdown
+// paths don't race on db.
 var m sync.Mutex
 
 // Configure initialises the Bun ORM singleton by wrapping the established

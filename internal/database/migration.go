@@ -8,6 +8,10 @@ import (
 	"github.com/servercurio/go-echo-starter/internal/logging"
 )
 
+// migrationFS holds the Goose SQL migration files embedded at build time.
+// New migrations are picked up automatically — drop a YYYYMMDDHHMMSS_*.sql
+// file into migrations/sql/ and the next build rebundles it.
+//
 //go:embed migrations/sql/*.sql
 var migrationFS embed.FS
 
