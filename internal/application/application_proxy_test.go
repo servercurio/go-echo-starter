@@ -4,28 +4,10 @@ import (
 	"testing"
 )
 
-func TestValidateProxyFlags_MultipleEnabled(t *testing.T) {
-	cfg := DefaultConfig()
-	cfg.Proxy.UseDirectIP = true
-	cfg.Proxy.UseXFFHeader = true
-
-	app := &Application{config: cfg}
-	if err := app.validateProxyFlags(); err == nil {
-		t.Fatalf("expected error when multiple proxy modes are enabled")
-	}
-}
-
-func TestValidateProxyFlags_OneEnabled(t *testing.T) {
-	cfg := DefaultConfig()
-	cfg.Proxy.UseDirectIP = false
-	cfg.Proxy.UseXFFHeader = true
-	cfg.Proxy.UseXRealIPHeader = false
-
-	app := &Application{config: cfg}
-	if err := app.validateProxyFlags(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
+// Proxy-flag mutual exclusion now lives in ProxyConfig.Validate (see
+// config_proxy_test.go for the table) and runs at Configure time, so the
+// dedicated app-level wrappers were redundant. These tests are kept here
+// historically; the live coverage is in TestProxyConfig_Validate.
 
 func TestResolveProxyTrustOptions_MixedCIDR(t *testing.T) {
 	cfg := DefaultConfig()

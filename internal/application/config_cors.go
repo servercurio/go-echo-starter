@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -75,6 +76,25 @@ func (c *CorsConfig) MarshalZerologObject(e *zerolog.Event) {
 		Bool("allowCredentials", c.AllowCredentials).
 		Int("maxAge", c.MaxAge).
 		Bool("enabled", c.Enabled())
+}
+
+// Validate rejects the spec-illegal combination of `allowCredentials=true`
+// with a wildcard origin. Browsers refuse this combination at request time,
+// so a daemon configured this way would silently fail every cross-origin
+// request that needed credentials. Refuse at startup so operators see the
+// problem in the boot log instead of a UI bug ticket.
+func (c *CorsConfig) Validate() error {
+	if c == nil || !c.Enabled() {
+		return nil
+	}
+	if c.AllowCredentials {
+		for _, o := range c.AllowOrigins {
+			if strings.TrimSpace(o) == "*" {
+				return errors.New("cors: allowCredentials cannot be combined with wildcard '*' origin (browsers will block such responses)")
+			}
+		}
+	}
+	return nil
 }
 
 func DefaultCorsConfig() *CorsConfig {

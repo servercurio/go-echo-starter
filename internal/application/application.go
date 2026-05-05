@@ -133,6 +133,11 @@ func (app *Application) Configure() error {
 	NotifyDatabaseConfig(app.config.Database)
 	NotifyOpenAPIConfig(app.config.OpenAPI)
 
+	if err := app.config.Validate(); err != nil {
+		logging.Daemon.Error().Err(err).Msg("invalid configuration; daemon will not start")
+		return err
+	}
+
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"net"
 	"strings"
 
@@ -46,6 +47,33 @@ func (c *ProxyConfig) FromEnv(prefix string) {
 			Msg("ignoring invalid CIDR in trusted IP ranges")
 	}
 	c.TrustedIPRanges = parsed
+}
+
+// Validate refuses configurations that mix mutually-exclusive IP-extraction
+// strategies. The proxy module reads from one source — direct, XFF, or
+// X-Real-IP — and stitching multiple together would cause spoofing
+// surprises (an attacker who controls one header could override the IP
+// the rate limiter / log line attributes the request to). Pre-fix this
+// was caught at Initialize and downgraded to a Warn; that left a daemon
+// running with whatever extractor won the race.
+func (c *ProxyConfig) Validate() error {
+	if c == nil {
+		return nil
+	}
+	count := 0
+	if c.UseDirectIP {
+		count++
+	}
+	if c.UseXFFHeader {
+		count++
+	}
+	if c.UseXRealIPHeader {
+		count++
+	}
+	if count > 1 {
+		return errors.New("proxy: only one of useDirectIP, useXFFHeader, useXRealIPHeader may be enabled")
+	}
+	return nil
 }
 
 func (c *ProxyConfig) MarshalZerologObject(e *zerolog.Event) {

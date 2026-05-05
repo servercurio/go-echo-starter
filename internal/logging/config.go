@@ -1,6 +1,8 @@
 package logging
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -45,6 +47,39 @@ func (l *LoggerConfig) FromEnv(prefix string) {
 	env.SetStringValue(prefix, "level", &l.Level)
 	env.SetBoolValue(prefix, "pretty_print", &l.PrettyPrint)
 	env.SetBoolValue(prefix, "include_caller", &l.IncludeCaller)
+}
+
+// Validate rejects logger configs whose Level string isn't a recognised
+// zerolog level (trace/debug/info/warn/error/fatal/panic). NewLoggerConfig
+// silently coerces empty/invalid values to "info", but configs loaded
+// directly from a file or env var bypass that path — refusing here means
+// "loglevel: warning" (instead of "warn") fails fast instead of producing
+// silently-wrong output.
+func (c *Config) Validate() error {
+	if c == nil {
+		return nil
+	}
+	return errors.Join(
+		c.Daemon.Validate("daemon"),
+		c.HttpAccess.Validate("httpAccess"),
+	)
+}
+
+// Validate parses the LoggerConfig's Level via zerolog. Empty Level is
+// permitted (NewLoggerConfig coerces to info elsewhere); a non-empty but
+// unrecognised value is the configuration mistake worth catching.
+func (l *LoggerConfig) Validate(name string) error {
+	if l == nil {
+		return nil
+	}
+	level := strings.TrimSpace(l.Level)
+	if level == "" {
+		return nil
+	}
+	if _, err := zerolog.ParseLevel(strings.ToLower(level)); err != nil {
+		return fmt.Errorf("logging.%s.level: %q is not a recognised zerolog level", name, l.Level)
+	}
+	return nil
 }
 
 func DefaultLoggingConfig() *Config {

@@ -1,6 +1,9 @@
 package application
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/rs/zerolog"
 	"github.com/servercurio/go-echo-starter/internal/env"
 )
@@ -74,6 +77,26 @@ func (c *OpenAPIConfig) MarshalZerologObject(e *zerolog.Event) {
 			Str("swaggerPath", c.Swagger.Path).
 			Str("swaggerSpecUrl", c.Swagger.SpecURL)
 	}
+}
+
+// Validate rejects an enabled Swagger UI without a mount path or spec URL —
+// echo-swagger would 404 every request to the UI in that state. OpenAPI
+// itself doesn't need title/version because Application backfills both
+// from the daemon name and build-injected SemVer when they're empty.
+func (c *OpenAPIConfig) Validate() error {
+	if c == nil || !c.Enabled {
+		return nil
+	}
+	var errs []error
+	if c.Swagger != nil && c.Swagger.Enabled {
+		if strings.TrimSpace(c.Swagger.Path) == "" {
+			errs = append(errs, errors.New("openapi.swagger.path must be set when swagger UI is enabled"))
+		}
+		if strings.TrimSpace(c.Swagger.SpecURL) == "" {
+			errs = append(errs, errors.New("openapi.swagger.specUrl must be set when swagger UI is enabled"))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // DefaultOpenAPIConfig returns the conservative starter defaults: spec on,

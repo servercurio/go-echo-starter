@@ -1,8 +1,60 @@
 package application
 
 import (
+	"strings"
 	"testing"
 )
+
+// TestProxyConfig_Validate replaces the deleted TestValidateProxyFlags_*
+// pair. The mutual-exclusion check moved to ProxyConfig.Validate (called
+// from Configure via Config.Validate); that's the canonical location.
+func TestProxyConfig_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(c *ProxyConfig)
+		wantErr string
+	}{
+		{name: "default (DirectIP only)", mutate: func(c *ProxyConfig) {}},
+		{
+			name:   "all flags off",
+			mutate: func(c *ProxyConfig) { c.UseDirectIP = false },
+		},
+		{
+			name:   "XFF only",
+			mutate: func(c *ProxyConfig) { c.UseDirectIP = false; c.UseXFFHeader = true },
+		},
+		{
+			name:    "DirectIP + XFF",
+			mutate:  func(c *ProxyConfig) { c.UseXFFHeader = true },
+			wantErr: "only one of",
+		},
+		{
+			name:    "all three",
+			mutate:  func(c *ProxyConfig) { c.UseXFFHeader = true; c.UseXRealIPHeader = true },
+			wantErr: "only one of",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := DefaultProxyConfig()
+			tt.mutate(cfg)
+			err := cfg.Validate()
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("expected nil error, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error containing %q, got nil", tt.wantErr)
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("error %q did not contain %q", err.Error(), tt.wantErr)
+			}
+		})
+	}
+}
 
 // TestProxyConfig_FromEnv_TrustedIPRanges pins the parsing contract for
 // APP_PROXY_TRUSTED_IP_RANGES. The pre-fix implementation panicked on
