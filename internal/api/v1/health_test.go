@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -37,7 +38,7 @@ func serve(t *testing.T, r router.Route, path, accept string) *httptest.Response
 func allUpRegistry(names ...string) *health.Registry {
 	reg := health.NewRegistry()
 	for _, n := range names {
-		reg.Register(n, func() health.ComponentResult {
+		reg.Register(n, func(_ context.Context) health.ComponentResult {
 			return health.ComponentResult{Status: health.StatusUp}
 		})
 	}
@@ -90,10 +91,10 @@ func TestReadinessRoute_AllUpReturns200(t *testing.T) {
 func TestReadinessRoute_AnyDownReturns503(t *testing.T) {
 	assert := asrt.New(t)
 	reg := health.NewRegistry()
-	reg.Register("lifecycle", func() health.ComponentResult {
+	reg.Register("lifecycle", func(_ context.Context) health.ComponentResult {
 		return health.ComponentResult{Status: health.StatusUp}
 	})
-	reg.Register("database", func() health.ComponentResult {
+	reg.Register("database", func(_ context.Context) health.ComponentResult {
 		return health.ComponentResult{
 			Status:  health.StatusDown,
 			Details: map[string]any{"reason": "ping failed"},
