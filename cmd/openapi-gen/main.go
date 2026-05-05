@@ -76,12 +76,12 @@ func main() {
 	}
 
 	if dir := filepath.Dir(*out); dir != "" && dir != "." {
-		if mkErr := os.MkdirAll(dir, 0o755); mkErr != nil {
+		if mkErr := os.MkdirAll(dir, 0o750); mkErr != nil {
 			fmt.Fprintf(os.Stderr, "openapi-gen: mkdir %s: %v\n", dir, mkErr)
 			os.Exit(1)
 		}
 	}
-	if writeErr := os.WriteFile(*out, data, 0o644); writeErr != nil {
+	if writeErr := os.WriteFile(*out, data, 0o600); writeErr != nil {
 		fmt.Fprintf(os.Stderr, "openapi-gen: write %s: %v\n", *out, writeErr)
 		os.Exit(1)
 	}
