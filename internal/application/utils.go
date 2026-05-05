@@ -82,6 +82,16 @@ func NotifyCsrfConfig(cfg *CsrfConfig) {
 		Msg("csrf configuration")
 }
 
+func NotifyRateLimitConfig(cfg *RateLimitConfig) {
+	if cfg == nil || !cfg.Configured() {
+		return
+	}
+
+	logging.Daemon.Info().
+		EmbedObject(cfg).
+		Msg("rate limit configuration")
+}
+
 func NotifyProxySupportConfig(cfg *ProxyConfig) {
 	if cfg == nil {
 		return
@@ -125,6 +135,26 @@ func CorsMiddleware(cfg *CorsConfig) echo.MiddlewareFunc {
 		AllowHeaders:     cfg.AllowHeaders,
 		AllowCredentials: cfg.AllowCredentials,
 		MaxAge:           cfg.MaxAge,
+	})
+}
+
+// RateLimitMiddleware returns the Echo rate-limiter wired from cfg, or
+// nil when disabled. Keys by RealIP() (Echo's default extractor) so the
+// limit applies to the actual client even behind a trusted proxy — the
+// proxy support added in #17 sets up the IPExtractor upstream of this
+// middleware. Echo's memory store falls back to ceil(Rate) when Burst
+// is zero, so a one-knob config (just Rate) Just Works.
+func RateLimitMiddleware(cfg *RateLimitConfig) echo.MiddlewareFunc {
+	if cfg == nil || !cfg.Enabled {
+		return nil
+	}
+	store := mw.NewRateLimiterMemoryStoreWithConfig(mw.RateLimiterMemoryStoreConfig{
+		Rate:      cfg.Rate,
+		Burst:     cfg.Burst,
+		ExpiresIn: cfg.ExpiresIn,
+	})
+	return mw.RateLimiterWithConfig(mw.RateLimiterConfig{
+		Store: store,
 	})
 }
 
