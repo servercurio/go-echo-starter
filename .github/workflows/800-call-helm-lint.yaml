@@ -75,26 +75,11 @@ jobs:
           helm version --short
 
       - name: Install chart-testing (ct)
-        env:
-          CT_VERSION: ${{ inputs.chart-testing-version }}
-        run: |
-          set -euo pipefail
-          version_no_v="${CT_VERSION#v}"
-          CT_TARBALL="chart-testing_${version_no_v}_linux_amd64.tar.gz"
-          curl -fsSLo "/tmp/${CT_TARBALL}" "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/${CT_TARBALL}"
-          curl -fsSLo "/tmp/ct_checksums.txt" "https://github.com/helm/chart-testing/releases/download/${CT_VERSION}/chart-testing_${version_no_v}_checksums.txt"
-          expected_sha="$(grep "${CT_TARBALL}" /tmp/ct_checksums.txt | awk '{print $1}')"
-          actual_sha="$(sha256sum "/tmp/${CT_TARBALL}" | awk '{print $1}')"
-          if [[ "${expected_sha}" != "${actual_sha}" ]]; then
-            echo "ct checksum mismatch: expected ${expected_sha}, got ${actual_sha}" >&2
-            exit 1
-          fi
-          mkdir -p /tmp/ct
-          tar -xzf "/tmp/${CT_TARBALL}" -C /tmp/ct
-          sudo mv /tmp/ct/ct /usr/local/bin/ct
-          sudo mkdir -p /etc/ct
-          sudo mv /tmp/ct/etc/* /etc/ct/
-          ct version
+        # SHA pin: helm/chart-testing-action@v2.8.0. Verify against
+        # https://github.com/helm/chart-testing-action/releases.
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f
+        with:
+          version: ${{ inputs.chart-testing-version }}
 
       - name: helm lint
         run: task helm:lint
