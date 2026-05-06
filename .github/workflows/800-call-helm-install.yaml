@@ -124,7 +124,7 @@ jobs:
           # helm/kind-action does not load images itself; do that here.
           kind load docker-image appsvr:latest --name ct
 
-      - name: ct install
+      - name: Chart Testing Install
         run: |
           set -euo pipefail
           # ct iterates each ci/*-values.yaml file and runs a separate `helm install --wait`.
@@ -136,7 +136,7 @@ jobs:
             --chart-dirs charts \
             --helm-extra-args "--timeout=300s"
 
-      - name: kind logs on failure
+      - name: Export Kind Logs On Failure
         if: failure()
         run: |
           kind export logs /tmp/kind-logs --name ct || true
