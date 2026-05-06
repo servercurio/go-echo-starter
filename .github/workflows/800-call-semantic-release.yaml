@@ -309,7 +309,12 @@ jobs:
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
           push-to-registry: true
 
-      - name: Attest Go SBOM against each binary
+      # actions/attest-sbom takes one sbom-path per call. The CycloneDX
+      # SBOMs are produced in both JSON and XML; emit a separate SBOM
+      # attestation for each format so consumers can verify whichever
+      # encoding their tooling consumes.
+
+      - name: Attest Go CycloneDX JSON SBOM against each binary
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         # SHA pin: actions/attest-sbom@v2.4.0. Verify before merge.
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
@@ -323,7 +328,20 @@ jobs:
             bin/appsvrd-windows-arm64
           sbom-path: bin/sbom.json
 
-      - name: Attest container SBOM against container image
+      - name: Attest Go CycloneDX XML SBOM against each binary
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-path: |
+            bin/appsvrd-linux-amd64
+            bin/appsvrd-linux-arm64
+            bin/appsvrd-darwin-amd64
+            bin/appsvrd-darwin-arm64
+            bin/appsvrd-windows-amd64
+            bin/appsvrd-windows-arm64
+          sbom-path: bin/sbom.xml
+
+      - name: Attest container CycloneDX JSON SBOM against container image
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
@@ -332,18 +350,43 @@ jobs:
           sbom-path: bin/container-sbom.json
           push-to-registry: true
 
-      - name: Attest helm SBOM against helm chart .tgz
+      - name: Attest container CycloneDX XML SBOM against container image
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-name: ghcr.io/servercurio/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.container_digest }}
+          sbom-path: bin/container-sbom.xml
+          push-to-registry: true
+
+      - name: Attest helm CycloneDX JSON SBOM against helm chart .tgz
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
           subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
           sbom-path: bin/helm-sbom.json
 
-      - name: Attest helm SBOM against helm OCI artifact
+      - name: Attest helm CycloneDX XML SBOM against helm chart .tgz
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
+          sbom-path: bin/helm-sbom.xml
+
+      - name: Attest helm CycloneDX JSON SBOM against helm OCI artifact
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
         uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
         with:
           subject-name: ghcr.io/servercurio/charts/go-echo-starter
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
           sbom-path: bin/helm-sbom.json
+          push-to-registry: true
+
+      - name: Attest helm CycloneDX XML SBOM against helm OCI artifact
+        if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
+        uses: actions/attest-sbom@bd218ad0dbcb3e146bd073d1d9c6d78e08aa8a0b
+        with:
+          subject-name: ghcr.io/servercurio/charts/go-echo-starter
+          subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
+          sbom-path: bin/helm-sbom.xml
           push-to-registry: true
