@@ -5,6 +5,7 @@
 Go 1.26 is required. The agent should flag any code suggestions targeting older Go versions or using deprecated APIs (e.g. `ioutil.*`, pre-generics patterns where generics are clearer).
 [Task](https://taskfile.dev) is the canonical build runner — never suggest invoking raw `go build` / `go test` for anything beyond a quick check; route work through `Taskfile.yaml` targets.
 Dependencies are vendored locally for hermetic builds, but `vendor/` is **not** committed (it's gitignored and regenerated on demand). `go mod` operations go through `task vendor`, never raw `go get`.
+Helm 3.x is required for chart work under `charts/`. Route chart operations through `task helm:*` targets, never raw `helm`. Container image builds go through `task build:container` (local) or `task container:build:multiarch` (release). Supply-chain tooling: `cyclonedx-gomod` (Go SBOM) and `syft` (container + chart SBOMs) are installed on demand by their respective `task` targets — don't shell out to them directly.
 
 ## Personality
 
