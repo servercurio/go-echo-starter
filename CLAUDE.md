@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-Guidance for Claude Code working in this repository. This file covers project intent, conventions, and procedural guidance that isn't captured in the agent reference docs:
+Guidance for Claude Code working in this repository. This file covers project intent, conventions, and procedural guidance that isn't captured in the agent reference docs imported below.
 
-- [`.claude/instructions.md`](.claude/instructions.md) — tech stack, personality, requirements
-- [`.claude/build-commands.md`](.claude/build-commands.md) — `task` targets and what they run
-- [`.claude/module-structure.md`](.claude/module-structure.md) — directory-by-directory roles
-- [`.claude/conventions.md`](.claude/conventions.md) — coding conventions for this repo
-- [`.claude/git-hooks.md`](.claude/git-hooks.md) — required local git hooks (must be installed per clone)
+@.claude/instructions.md
+@.claude/build-commands.md
+@.claude/module-structure.md
+@.claude/conventions.md
+@.claude/git-hooks.md
 
 ## What this project is
 
