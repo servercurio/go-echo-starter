@@ -72,11 +72,11 @@ The starter binary does not currently expose `/metrics`. Enable the monitor reso
 
 ## Health endpoints
 
-| Path       | Probe                          |
-| ---------- | ------------------------------ |
-| `/livez`   | Liveness; always 200 once up   |
-| `/readyz`  | Readiness; aggregates checks   |
-| `/healthz` | Alias of `/readyz`             |
+| Path              | Probe                          |
+| ----------------- | ------------------------------ |
+| `/api/v1/livez`   | Liveness; always 200 once up   |
+| `/api/v1/readyz`  | Readiness; aggregates checks   |
+| `/api/v1/healthz` | Alias of `/api/v1/readyz`      |
 
 ## Values
 

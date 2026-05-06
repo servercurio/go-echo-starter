@@ -13,19 +13,19 @@ go-echo-starter {{ .Chart.AppVersion }} has been installed as release {{ .Releas
 {{- else if eq .Values.service.type "NodePort" }}
    export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "go-echo-starter.fullname" . }})
    export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-   curl http://$NODE_IP:$NODE_PORT/livez
+   curl http://$NODE_IP:$NODE_PORT/api/v1/livez
 {{- else if eq .Values.service.type "LoadBalancer" }}
    NOTE: It may take a few minutes for the LoadBalancer IP to be available.
    kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "go-echo-starter.fullname" . }}
 {{- else }}
    kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "go-echo-starter.fullname" . }} 8080:{{ .Values.service.port }}
-   curl http://127.0.0.1:8080/livez
+   curl http://127.0.0.1:8080/api/v1/livez
 {{- end }}
 
 2. Health endpoints:
-   /livez   — liveness (always 200 once the process is up)
-   /readyz  — readiness (aggregates registered health checks; goes 503 during graceful shutdown)
-   /healthz — alias of /readyz
+   /api/v1/livez   — liveness (always 200 once the process is up)
+   /api/v1/readyz  — readiness (aggregates registered health checks; goes 503 during graceful shutdown)
+   /api/v1/healthz — alias of /api/v1/readyz
 
 3. Supplying configuration via Kubernetes Secrets:
    The chart consumes user-supplied Secrets and ConfigMaps via the .Values.envFrom list. Reference any

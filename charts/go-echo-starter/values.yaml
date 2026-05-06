@@ -107,20 +107,20 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-# -- Liveness probe. /livez always returns 200 OK once the process is up.
+# -- Liveness probe. /api/v1/livez always returns 200 OK once the process is up.
 livenessProbe:
   httpGet:
-    path: /livez
+    path: /api/v1/livez
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 2
   failureThreshold: 3
 
-# -- Readiness probe. /readyz aggregates registered health checks; goes 503 on shutdown.
+# -- Readiness probe. /api/v1/readyz aggregates registered health checks; goes 503 on shutdown.
 readinessProbe:
   httpGet:
-    path: /readyz
+    path: /api/v1/readyz
     port: http
   initialDelaySeconds: 2
   periodSeconds: 5
@@ -130,7 +130,7 @@ readinessProbe:
 # -- Startup probe. Generous failure budget for slow-starting downstream apps.
 startupProbe:
   httpGet:
-    path: /livez
+    path: /api/v1/livez
     port: http
   periodSeconds: 2
   failureThreshold: 30

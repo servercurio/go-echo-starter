@@ -29,8 +29,8 @@ spec:
         - -c
         - |
           set -e
-          wget -qO- "http://{{ include "go-echo-starter.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/livez"
+          wget -qO- "http://{{ include "go-echo-starter.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/api/v1/livez"
           echo "livez OK"
-          wget -qO- "http://{{ include "go-echo-starter.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/readyz"
+          wget -qO- "http://{{ include "go-echo-starter.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/api/v1/readyz"
           echo "readyz OK"
 {{- end }}
