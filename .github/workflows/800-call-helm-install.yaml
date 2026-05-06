@@ -9,11 +9,11 @@ on:
         type: string
         required: false
         default: "v3.20.2"
-      kind-version:
-        description: "kind release version (https://github.com/kubernetes-sigs/kind/releases):"
+      kind-action-version:
+        description: "helm/kind-action release version (https://github.com/helm/kind-action/releases):"
         type: string
         required: false
-        default: "v0.27.0"
+        default: "v1.14.0"
       kind-node-image:
         description: "kind node image (must match a kind-version-tested k8s release):"
         type: string
@@ -87,28 +87,6 @@ jobs:
           sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
           helm version --short
 
-      - name: Install kind
-        env:
-          KIND_VERSION: ${{ inputs.kind-version }}
-        run: |
-          set -euo pipefail
-          KIND_URL="https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
-          curl -fsSLo /tmp/kind "${KIND_URL}"
-          # kind publishes a sha256sum file alongside the binary on the
-          # download server (not the GitHub release page).
-          curl -fsSLo /tmp/kind.sha256 "${KIND_URL}.sha256sum" || \
-            curl -fsSLo /tmp/kind.sha256 "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64.sha256sum"
-          # The .sha256sum file may reference the file by name (kind-linux-amd64) or be a bare hash.
-          # Handle both shapes.
-          expected_sha="$(awk '{print $1}' /tmp/kind.sha256)"
-          actual_sha="$(sha256sum /tmp/kind | awk '{print $1}')"
-          if [[ "${expected_sha}" != "${actual_sha}" ]]; then
-            echo "kind checksum mismatch: expected ${expected_sha}, got ${actual_sha}" >&2
-            exit 1
-          fi
-          sudo install -m 0755 /tmp/kind /usr/local/bin/kind
-          kind version
-
       - name: Install chart-testing (ct)
         env:
           CT_VERSION: ${{ inputs.chart-testing-version }}
@@ -140,14 +118,17 @@ jobs:
           task build:container
 
       - name: Create kind cluster
-        env:
-          KIND_NODE_IMAGE: ${{ inputs.kind-node-image }}
+        # SHA pin: helm/kind-action@v1.14.0. Verify against
+        # https://github.com/helm/kind-action/releases.
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc
+        with:
+          cluster_name: ct
+          node_image: ${{ inputs.kind-node-image }}
+          wait: 120s
+
+      - name: Inspect cluster
         run: |
           set -euo pipefail
-          kind create cluster \
-            --name ct \
-            --image "${KIND_NODE_IMAGE}" \
-            --wait 120s
           kubectl cluster-info --context kind-ct
           kubectl get nodes
 
@@ -155,6 +136,7 @@ jobs:
         run: |
           set -euo pipefail
           # Match the image reference used by both ci value fixtures.
+          # helm/kind-action does not load images itself; do that here.
           kind load docker-image appsvr:latest --name ct
 
       - name: ct install
