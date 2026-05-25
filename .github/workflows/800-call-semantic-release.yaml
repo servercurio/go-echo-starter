@@ -135,17 +135,13 @@ jobs:
       # --------------------------------------------------------------------
 
       - name: Set up QEMU
-        # SHA pin: docker/setup-qemu-action@v3.6.0. Verify before merge against
-        # https://github.com/docker/setup-qemu-action/releases.
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
 
       - name: Set up Docker Buildx
-        # SHA pin: docker/setup-buildx-action@v3.10.0. Verify before merge.
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
       - name: Login to GHCR (docker)
-        # SHA pin: docker/login-action@v3.4.0. Verify before merge.
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -241,8 +237,7 @@ jobs:
 
       - name: Attest provenance for file artifacts
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        # SHA pin: actions/attest-build-provenance@v2.4.0. Verify before merge.
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           # Cover every file shipped as a GitHub release asset: binaries, hash
           # files, GPG-signed hashes, the helm chart .tgz, the helm chart hash
@@ -295,7 +290,7 @@ jobs:
 
       - name: Attest provenance for container image
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-name: ghcr.io/servercurio/go-echo-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
@@ -303,7 +298,7 @@ jobs:
 
       - name: Attest provenance for helm OCI artifact
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-name: ghcr.io/servercurio/charts/go-echo-starter
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
@@ -316,8 +311,7 @@ jobs:
 
       - name: Attest Go CycloneDX JSON SBOM against each binary
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        # SHA pin: actions/attest-sbom@v2.4.0. Verify before merge.
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: |
             bin/appsvrd-linux-amd64
@@ -330,7 +324,7 @@ jobs:
 
       - name: Attest Go CycloneDX XML SBOM against each binary
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: |
             bin/appsvrd-linux-amd64
@@ -343,7 +337,7 @@ jobs:
 
       - name: Attest container CycloneDX JSON SBOM against container image
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ghcr.io/servercurio/go-echo-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
@@ -352,7 +346,7 @@ jobs:
 
       - name: Attest container CycloneDX XML SBOM against container image
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ghcr.io/servercurio/go-echo-starter
           subject-digest: ${{ steps.read-digests.outputs.container_digest }}
@@ -361,21 +355,21 @@ jobs:
 
       - name: Attest helm CycloneDX JSON SBOM against helm chart .tgz
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
           sbom-path: bin/helm-sbom.json
 
       - name: Attest helm CycloneDX XML SBOM against helm chart .tgz
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: bin/go-echo-starter-${{ steps.semantic-release.outputs.version }}.tgz
           sbom-path: bin/helm-sbom.xml
 
       - name: Attest helm CycloneDX JSON SBOM against helm OCI artifact
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ghcr.io/servercurio/charts/go-echo-starter
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
@@ -384,7 +378,7 @@ jobs:
 
       - name: Attest helm CycloneDX XML SBOM against helm OCI artifact
         if: ${{ inputs.dry-run == false && steps.semantic-release.outputs.released == 'true' }}
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-name: ghcr.io/servercurio/charts/go-echo-starter
           subject-digest: ${{ steps.read-digests.outputs.helm_digest }}
