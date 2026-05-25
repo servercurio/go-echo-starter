@@ -1,7 +1,14 @@
 # CLAUDE.md
 
-Guidance for Claude Code working in this repository. This file covers project intent, conventions, and procedural guidance that isn't captured in the agent reference docs imported below.
+Guidance for Claude Code working in this repository. This file covers project intent, conventions, and procedural guidance that isn't captured in the agent reference docs:
 
+- [`.claude/instructions.md`](.claude/instructions.md) — tech stack, personality, requirements
+- [`.claude/build-commands.md`](.claude/build-commands.md) — `task` targets and what they run
+- [`.claude/module-structure.md`](.claude/module-structure.md) — directory-by-directory roles
+- [`.claude/conventions.md`](.claude/conventions.md) — coding conventions for this repo
+- [`.claude/git-hooks.md`](.claude/git-hooks.md) — required local git hooks (must be installed per clone)
+
+<!-- Auto-load the reference docs above so Claude has them in context from session start. -->
 @.claude/instructions.md
 @.claude/build-commands.md
 @.claude/module-structure.md
@@ -26,7 +33,7 @@ A fresh clone won't have `vendor/` until `task vendor` (or any task that depends
 - **New top-level module**: register it in `cmd/daemon/main.go` alongside the `api` module.
 - **New config field**: add to the appropriate struct under `internal/application/config_*.go`, give it a sensible default in `DefaultConfig()`, wire env-var loading using the helpers in `internal/env/`, and extend the struct's `Validate() error` to reject obviously-bad values — the daemon refuses to boot when `Application.Configure` returns a non-nil error, so validation lives there rather than at request time. When adding a brand-new config struct, also implement `Validate()` and aggregate it into `Config.Validate()` (`internal/application/config.go`).
 - **New middleware**: if globally applied, add to the middleware stack in `internal/application/application.go`. If module-scoped, pass via `module.WithMiddleware(...)`.
-- **New CI workflow**: file under `.github/workflows/` following the naming convention in `.github/workflows/docs/naming-standards.md` (`ddd-xxxx-name.yaml` file, matching `ddd: [XXXX] Name` workflow `name:`). PR-triggered workflows use the **200** prefix in this repo (the upstream-standard CITR slot, repurposed locally); main-branch push-triggered workflows use **300**; operational/release flows use **100**; reusable workflows use **800**. New `go:generate` directives don't need a workflow change — `task generate` is invoked by both PR reusable workflows and the release flow, and picks them up via `./...`.
+- **New CI workflow**: file under `.github/workflows/` following the naming convention in `.github/workflows/docs/naming-standards.md` (`ddd-xxxx-name.yaml` file, matching `ddd: [XXXX] Name` workflow `name:`). PR-triggered workflows use the **200** prefix; main-branch push-triggered workflows use **300**; operational/release flows use **100**; reusable workflows use **800**. New `go:generate` directives don't need a workflow change — `task generate` is invoked by both PR reusable workflows and the release flow, and picks them up via `./...`.
 - **New SQL migration**: drop a `YYYYMMDDHHMMSS_description.sql` file (Goose convention with `-- +goose Up` / `-- +goose Down` markers) into `internal/database/migrations/sql/`. The `//go:embed` pattern picks it up at compile time — no Go code change needed. `database.Migrate` runs the up direction on every successful daemon boot.
 - **New domain model**: add a Bun struct type in a new file under `internal/database/orm/`; access the connection via `orm.Database()`. Don't write directly to `database.Connection()` from app code — go through the ORM so dialect changes stay isolated.
 - **New health component**: register a `health.CheckFunc` against `app.HealthRegistry()` from inside `Application.registerHealthChecks` (preferred — keeps lifecycle ownership of registration), or from `cmd/daemon/main.go` if the dependency lives outside the `internal/application/` package. Closures run on every `/readyz` request, so keep them sub-second; put expensive probes behind a cached background poller. Conditionally register subsystems that may be disabled — only active components should appear in the report.
