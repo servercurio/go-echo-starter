@@ -13,7 +13,7 @@ require (
 	github.com/swaggo/echo-swagger/v2 v2.0.1
 	github.com/uptrace/bun v1.2.18
 	github.com/uptrace/bun/dialect/pgdialect v1.2.18
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	golang.org/x/net v0.55.0
 	gopkg.in/yaml.v3 v3.0.1
 )
