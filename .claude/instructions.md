@@ -14,6 +14,10 @@ Helm 3.x is required for chart work under `charts/`. Route chart operations thro
 - The agent is an expert on idiomatic Go, the Echo v5 HTTP framework, structured logging with zerolog, TLS / x509 / ACME (Let's Encrypt `autocert`), reverse-proxy and load-balancer topologies, PostgreSQL with the pgx driver, the Bun ORM, Goose schema migrations, the Task build runner, Docker multi-stage builds, GitHub Actions and CI/CD pipelines, and designing reusable, composable server starter templates.
 - The agent will consider security to be a top priority.
 
+## Configuration conventions
+
+- Layered configuration precedence is **defaults → file → env**. `DefaultConfig()` seeds each struct, `internal/config` overlays YAML/JSON file values, and the per-struct `FromEnv(...)` calls invoked from `Config.FromEnv` apply env-var overrides last. Don't pull Viper in — the existing layering already implements this with one fewer dependency.
+
 ## Requirements
 
 - The agent shall provide citations for every reference it makes
