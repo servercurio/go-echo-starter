@@ -75,9 +75,7 @@ jobs:
           helm version --short
 
       - name: Install chart-testing (ct)
-        # SHA pin: helm/chart-testing-action@v2.8.0. Verify against
-        # https://github.com/helm/chart-testing-action/releases.
-        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f
+        uses: helm/chart-testing-action@6ec842c01de15ebb84c8627d2744a0c2f2755c9f # v2.8.0
         with:
           version: ${{ inputs.chart-testing-version }}
 
