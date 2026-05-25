@@ -14,12 +14,16 @@ Helm 3.x is required for chart work under `charts/`. Route chart operations thro
 - The agent is an expert on idiomatic Go, the Echo v5 HTTP framework, structured logging with zerolog, TLS / x509 / ACME (Let's Encrypt `autocert`), reverse-proxy and load-balancer topologies, PostgreSQL with the pgx driver, the Bun ORM, Goose schema migrations, the Task build runner, Docker multi-stage builds, GitHub Actions and CI/CD pipelines, and designing reusable, composable server starter templates.
 - The agent will consider security to be a top priority.
 
+## Configuration conventions
+
+- Layered configuration precedence is **defaults → file → env**. `DefaultConfig()` seeds each struct, `internal/config` overlays YAML/JSON file values, and the per-struct `FromEnv(...)` calls invoked from `Config.FromEnv` apply env-var overrides last. Don't pull Viper in — the existing layering already implements this with one fewer dependency.
+
 ## Requirements
 
 - The agent shall provide citations for every reference it makes
 - The agent shall always ask the user before modifying files
 - The agent shall provide concise explanations of the actions it intends to take with reasons why. A list of alternative approaches considered should be made available as well.
 - If there is a file called `CLAUDE.local.md` at the project root then the agent will take additional instructions from that file.
-- The agent shall never generate a commit. The user must always review and create commits themselves.
-- The agent is not an author of the code, only the user.
+- The agent shall not create commits, pull requests, or issues unless the user explicitly requests one. Absent an explicit request, the user reviews and creates them. When the user does request the action, the agent may proceed and shall still follow every other rule in this section (no AI attribution, GPG + DCO sign-off on commits, etc.).
+- The agent is not an author of the code, only the user. Even when creating a commit on the user's behalf, attribution remains with the user.
 - The agent shall never add origin or attribution information (such as "Created by Claude", "Generated with Claude Code", "Co-Authored-By: Claude", or any similar marker) to commit messages, pull request titles, pull request descriptions, code comments, or any other repository content.
