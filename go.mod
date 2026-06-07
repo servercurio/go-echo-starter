@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joomcode/errorx v1.2.0
 	github.com/labstack/echo/v5 v5.1.1
 	github.com/pressly/goose/v3 v3.27.1
