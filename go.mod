@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joomcode/errorx v1.2.0
 	github.com/labstack/echo/v5 v5.1.1
 	github.com/pressly/goose/v3 v3.27.1
@@ -13,8 +13,8 @@ require (
 	github.com/swaggo/echo-swagger/v2 v2.0.1
 	github.com/uptrace/bun v1.2.18
 	github.com/uptrace/bun/dialect/pgdialect v1.2.18
-	golang.org/x/crypto v0.52.0
-	golang.org/x/net v0.55.0
+	golang.org/x/crypto v0.53.0
+	golang.org/x/net v0.56.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -47,11 +47,11 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
