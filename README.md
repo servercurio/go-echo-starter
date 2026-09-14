@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.svg" alt="Server Curio — Project Templates" width="600">
+  <img src="docs/logo-mark.svg" alt="Server Curio" width="160">
 </p>
 
 # go-echo-starter

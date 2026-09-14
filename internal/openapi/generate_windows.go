@@ -7,4 +7,4 @@ package openapi
 // Backslash path separators avoid surprises with older `copy` versions
 // that don't normalise forward slashes.
 
-//go:generate cmd /c copy /Y ..\..\docs\logo.svg logo.svg
+//go:generate cmd /c copy /Y ..\..\docs\logo-mark.svg logo.svg
