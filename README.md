@@ -51,7 +51,7 @@ The compiled binary is named `appsvrd` (application server daemon).
 
 ## Requirements
 
-- Go 1.26+
+- Go 1.27+
 - [Task](https://taskfile.dev) (for the build/dev workflow)
 - Docker (optional, for container builds)
 
