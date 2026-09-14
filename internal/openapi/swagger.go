@@ -45,7 +45,7 @@ const swaggerIndexTemplate = `<!DOCTYPE html>
     .swagger-ui .topbar-wrapper a::before {
       content: "";
       display: inline-block;
-      width: 240px;
+      width: 60px;
       height: 60px;
       background: url("./logo.svg") no-repeat left center;
       background-size: contain;

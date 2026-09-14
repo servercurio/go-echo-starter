@@ -8,4 +8,4 @@ package openapi
 // time so the embed directive in embeds.go can pick it up; the copy is
 // gitignored. The Windows companion is generate_windows.go.
 
-//go:generate cp ../../docs/logo.svg logo.svg
+//go:generate cp ../../docs/logo-mark.svg logo.svg
