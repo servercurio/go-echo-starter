@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/servercurio/go-echo-starter/internal/api"
 	"github.com/servercurio/go-echo-starter/internal/openapi"
 	"github.com/servercurio/go-echo-starter/internal/router"
@@ -62,12 +60,7 @@ func main() {
 	var err error
 	switch f {
 	case "yaml":
-		data, err = yaml.Marshal(spec)
-		if err == nil {
-			// Emit the SPDX header required by the License Headers check, so a
-			// regenerated spec never drifts from the committed file.
-			data = append([]byte("# SPDX-License-Identifier: Apache-2.0\n\n"), data...)
-		}
+		data, err = openapi.MarshalYAML(spec)
 	case "json":
 		data, err = json.MarshalIndent(spec, "", "  ")
 		if err == nil {
