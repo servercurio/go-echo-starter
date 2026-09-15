@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 # Module Structure
 
 - `cmd/daemon/` — `main` package; bootstraps and wires the application lifecycle (`Configure → Initialize → Start`).

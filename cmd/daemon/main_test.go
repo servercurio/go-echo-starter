@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 //go:build unix
 
 // This test is Unix-only by design. It exercises graceful shutdown by sending

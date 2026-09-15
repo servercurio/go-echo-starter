@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
@@ -61,6 +63,11 @@ func main() {
 	switch f {
 	case "yaml":
 		data, err = yaml.Marshal(spec)
+		if err == nil {
+			// Emit the SPDX header required by the License Headers check, so a
+			// regenerated spec never drifts from the committed file.
+			data = append([]byte("# SPDX-License-Identifier: Apache-2.0\n\n"), data...)
+		}
 	case "json":
 		data, err = json.MarshalIndent(spec, "", "  ")
 		if err == nil {

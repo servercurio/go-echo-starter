@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package health implements an in-process health-check registry and the
 // response model returned by the /api/v1/livez, /readyz, and /healthz
 // endpoints.

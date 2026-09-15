@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package openapi generates an OpenAPI 3.0.3 document directly from the
 // router.Module / router.Route / router.Endpoint hierarchy this starter
 // uses, and exposes the document at /openapi.yaml and /openapi.json. It can

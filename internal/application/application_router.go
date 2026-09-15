@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package application
 
 // initializeRouting attaches every registered module to its corresponding

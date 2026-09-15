@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package application owns the daemon lifecycle: loading and validating
 // configuration, building the global middleware stack, configuring the HTTP
 // and TLS servers (with optional ACME/auto-issued certs), wiring the
