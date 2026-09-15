@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 # Default values for go-echo-starter.
 # yaml-language-server: $schema=values.schema.json
 

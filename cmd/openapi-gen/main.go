@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package main
 
 import (
@@ -7,8 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 
 	"github.com/servercurio/go-echo-starter/internal/api"
 	"github.com/servercurio/go-echo-starter/internal/openapi"
@@ -60,7 +60,7 @@ func main() {
 	var err error
 	switch f {
 	case "yaml":
-		data, err = yaml.Marshal(spec)
+		data, err = openapi.MarshalYAML(spec)
 	case "json":
 		data, err = json.MarshalIndent(spec, "", "  ")
 		if err == nil {

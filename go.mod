@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 module github.com/servercurio/go-echo-starter
 
 go 1.27

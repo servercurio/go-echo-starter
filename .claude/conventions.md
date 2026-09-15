@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 # Conventions
 
 - **Functional options for module construction** — `module.WithRoutes(...)`, `module.WithSubModules(...)`, `module.WithMiddleware(...)`. Follow this pattern when adding new builder-style APIs.

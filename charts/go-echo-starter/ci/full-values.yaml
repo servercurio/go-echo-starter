@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 # Used by `ct install` and by `task helm:template` to exercise every gated resource path.
 # Every optional resource is enabled, so this fixture catches render regressions in
 # ServiceMonitor / PodMonitor / PodLogs / Ingress / HPA / NetworkPolicy / PDB / TLS.

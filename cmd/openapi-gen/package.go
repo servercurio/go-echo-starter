@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // openapi-gen renders the project's OpenAPI spec to a file so CI can
 // detect drift between the rendered spec and the version checked in at
 // docs/openapi.yaml. The output is intentionally deterministic: the

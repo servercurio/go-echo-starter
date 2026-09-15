@@ -1,3 +1,7 @@
+<!--
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 # go-echo-starter
 
 Helm chart for the [go-echo-starter](https://github.com/servercurio/go-echo-starter) HTTP daemon — Echo v5, structured logging, TLS, OpenAPI.

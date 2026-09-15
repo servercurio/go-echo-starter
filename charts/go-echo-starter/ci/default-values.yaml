@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 # Used by `ct install` for the default install path. Kept minimal — only enough to
 # exercise the deployment, service, configmap, and serviceaccount on a kind cluster.
 # Test image override matches the locally-loaded image in CI.

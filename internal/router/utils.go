@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package router
 
 // PathSeparator is the URI segment delimiter used when composing module

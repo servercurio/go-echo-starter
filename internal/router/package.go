@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // Package router defines the framework-agnostic abstractions used to assemble
 // HTTP routes, endpoints, and modules. Concrete implementations live under
 // internal/api/std/...; consumers wire them through router.Module and

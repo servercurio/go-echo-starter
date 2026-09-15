@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 package router
 
 import "github.com/servercurio/go-echo-starter/internal/health"

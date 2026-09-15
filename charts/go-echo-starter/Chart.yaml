@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 apiVersion: v2
 name: go-echo-starter
 description: Echo v5 HTTP/HTTPS daemon starter with structured logging, health endpoints, and OpenAPI.
