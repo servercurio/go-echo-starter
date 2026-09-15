@@ -85,7 +85,9 @@ Every tracked file starts with an SPDX license identifier in its own comment syn
 **License Headers** check (`.github/workflows/800-call-license-headers.yaml`, using
 [license-eye](https://github.com/apache/skywalking-eyes)) fails pull requests with a missing header.
 
-- `task lint` runs the same check locally, and `task license:fix` adds missing headers.
+- CI runs `task lint:license`, the same task you run locally (`task lint` includes it), and
+  `task license:fix` adds missing headers. The license-eye version is pinned once, as
+  `LICENSE_EYE_VERSION` in `Taskfile.yaml`.
 - Every file under `charts/*/templates/` needs `{{- /* SPDX-License-Identifier: Apache-2.0 */ -}}` as its
   first line, added by hand, so a disabled template renders nothing.
 - Files that cannot hold a comment (`LICENSE`, JSON, `go.sum`, `.gitkeep`, embedded data) are listed in
