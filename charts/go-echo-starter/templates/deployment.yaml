@@ -1,5 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
-
+{{- /* SPDX-License-Identifier: Apache-2.0 */ -}}
 {{- include "go-echo-starter.validateSeccompProfile" (dict "profile" .Values.podSecurityContext.seccompProfile "scope" "podSecurityContext") -}}
 {{- include "go-echo-starter.validateSeccompProfile" (dict "profile" .Values.securityContext.seccompProfile "scope" "securityContext") -}}
 apiVersion: apps/v1

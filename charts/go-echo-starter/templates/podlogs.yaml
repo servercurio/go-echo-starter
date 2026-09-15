@@ -1,5 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
-
+{{- /* SPDX-License-Identifier: Apache-2.0 */ -}}
 {{- if .Values.logging.podLogs.enabled -}}
 {{- if .Capabilities.APIVersions.Has "monitoring.grafana.com/v1alpha2" -}}
 apiVersion: monitoring.grafana.com/v1alpha2

@@ -1,5 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
-
+{{- /* SPDX-License-Identifier: Apache-2.0 */ -}}
 {{- if .Values.httpRoute.enabled -}}
 {{- $fullName := include "go-echo-starter.fullname" . -}}
 {{- $svcPort := .Values.service.port -}}
