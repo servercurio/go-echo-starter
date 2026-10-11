@@ -8,13 +8,13 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/joomcode/errorx v1.2.0
-	github.com/labstack/echo/v5 v5.3.1
+	github.com/labstack/echo/v5 v5.4.0
 	github.com/pressly/goose/v3 v3.28.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/echo-swagger/v2 v2.0.1
-	github.com/uptrace/bun v1.2.18
-	github.com/uptrace/bun/dialect/pgdialect v1.2.18
+	github.com/uptrace/bun v1.3.0
+	github.com/uptrace/bun/dialect/pgdialect v1.3.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/net v0.59.0
 	gopkg.in/yaml.v3 v3.0.1
